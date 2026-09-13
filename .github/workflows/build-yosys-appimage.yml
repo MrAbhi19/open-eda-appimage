@@ -2,7 +2,10 @@ name: Build Yosys 0.69 AppImage
 
 on:
   workflow_dispatch:
-
+  
+permissions:
+  contents: write
+  
 jobs:
   build:
     runs-on: ubuntu-22.04
