@@ -20,7 +20,7 @@ Getting up-to-date open-source EDA tools on a normal Linux system is annoying:
 
 This repo builds a **standalone AppImage** for each new upstream release, so you can grab one file and go. Every build runs in public GitHub Actions from the official source tarball — no patches, no forks, no hidden steps.
 
-**New Yosys releases are typically built within 2–3 days** of the upstream tag.
+**New Yosys releases are typically built within 24-48 hours** of the upstream tag.
 
 ---
 
