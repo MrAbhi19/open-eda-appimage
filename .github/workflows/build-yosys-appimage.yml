@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 env:
-  APPIMAGE_NAME: "Yosys-0.69-x86_64.AppImage"
+  APPIMAGE_NAME: "yosys-0.69-x86_64.AppImage"
 
 jobs:
   build:
@@ -118,88 +118,58 @@ jobs:
       - name: Upload AppImage as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Yosys-0.69-x86_64.AppImage
+          name: yosys-0.69-x86_64.AppImage
           path: |
-            Yosys-*.AppImage
-            Yosys-*.AppImage.sha256
+            yosys-*.AppImage
+            yosys-*.AppImage.sha256
           if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.69
+          tag_name: yosys-v0.69
           name: Yosys 0.69 AppImage
           overwrite_files: true
           body: |
             ## Yosys 0.69 - Linux x86_64 AppImage
 
-            A standalone, portable AppImage of **Yosys 0.69** (the open-source
-            RTL synthesis suite), built from the official upstream source tarball.
+            A standalone, portable AppImage of **Yosys 0.69** built from the [official upstream source tarball](https://github.com/YosysHQ/yosys/releases/tag/v0.69).
 
             ---
 
-            ### What's inside
+            ### Quick start
 
-            - Yosys 0.69 - full synthesis toolchain
-            - Built on Ubuntu 22.04 with Clang + LLVM
-            - CMake Release build, binaries stripped
-            - editline and slang disabled (kept small and portable)
-            - All required shared libraries bundled via linuxdeploy
+            ```
+            chmod +x yosys-0.69-x86_64.AppImage
+            ./yosys-0.69-x86_64.AppImage --version
+            ```
 
             ### Requirements
 
-            - Linux x86_64
-            - glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+, Fedora 36+, etc.)
-
-            ### How to use
-
-            ```
-            # 1. Download Yosys-0.69-x86_64.AppImage from the Assets below
-
-            # 2. Make it executable
-            chmod +x Yosys-0.69-x86_64.AppImage
-
-            # 3. Run it
-            ./Yosys-0.69-x86_64.AppImage
-
-            # Optional: pass Yosys flags directly
-            ./Yosys-0.69-x86_64.AppImage -V
-            ./Yosys-0.69-x86_64.AppImage -p "read_verilog design.v; synth; stat"
-            ```
+            - Linux x86_64, glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+, Fedora 36+, etc.)
 
             ### Verify the download
 
-            The SHA256 of Yosys-0.69-x86_64.AppImage is:
+            SHA256: `${{ steps.sha.outputs.hash }}`
 
+            Or use the attached checksum file:
+            
             ```
-            ${{ steps.sha.outputs.hash }}
-            ```
-
-            To verify after downloading:
-
-            ```
-            sha256sum Yosys-0.69-x86_64.AppImage
+            sha256sum -c yosys-0.69-x86_64.AppImage.sha256
             ```
 
-            A Yosys-0.69-x86_64.AppImage.sha256 file is also attached to this
-            release for automated verification:
+            ### Notes
 
-            ```
-            sha256sum -c Yosys-0.69-x86_64.AppImage.sha256
-            ```
-
-            ### Build transparency
-
-            Built automatically by GitHub Actions from the official Yosys 0.69
-            source tarball. Full build logs are available in the Actions tab
-            of this repository.
+            Built automatically by GitHub Actions. `editline`/`slang` disabled
+            for a smaller, more portable bundle. Full build logs in the
+            **Actions** tab.
 
             ---
 
             *Yosys is developed by the YosysHQ team and contributors. This is an unofficial repackaging - upstream project: https://github.com/YosysHQ/Yosys*
           files: |
-            Yosys-*.AppImage
-            Yosys-*.AppImage.sha256
+            yosys-*.AppImage
+            yosys-*.AppImage.sha256
           draft: false
           prerelease: false
           make_latest: true
