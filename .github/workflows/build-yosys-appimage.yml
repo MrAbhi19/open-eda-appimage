@@ -1,7 +1,7 @@
 name: Build Yosys 0.69 AppImage
 
 on:
-  workflow_dispatch:          # you click "Run workflow"
+  workflow_dispatch:
   push:
     tags:
       - 'v*'
@@ -28,10 +28,7 @@ jobs:
       - name: Download and extract Yosys 0.69
         run: |
           wget -q https://github.com/YosysHQ/yosys/releases/download/v0.69/yosys.tar.gz
-          # The tarball extracts flat (no top-level folder)
           tar xf yosys.tar.gz
-          ls -la
-          # Make sure we are in the source root
           test -f CMakeLists.txt && echo "Source looks good"
 
       - name: Configure Yosys with CMake
@@ -48,11 +45,10 @@ jobs:
 
       - name: Install Yosys into AppDir
         run: |
-          # Install into AppDir/usr (standard AppImage layout)
           cmake --install build --prefix AppDir/usr --strip
           ls -la AppDir/usr/bin/
 
-      - name: Create .desktop file and icon
+      - name: Create .desktop file and valid icon
         run: |
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
@@ -68,9 +64,18 @@ jobs:
           Comment=Yosys Open SYnthesis Suite
           EOF
 
-          # Tiny valid 1×1 PNG as placeholder icon
-          printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xdb\x00\x00\x00\x00IEND\xaeB`\x82' \
-            > AppDir/usr/share/icons/hicolor/256x256/apps/yosys.png
+          # Valid 1×1 transparent PNG (correct CRC)
+          python3 -c '
+          import struct, zlib
+          raw = b"\x00\x00\x00\x00\x00"
+          compressed = zlib.compress(raw)
+          ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0)
+          def chunk(tag, data):
+              return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xffffffff)
+          png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", compressed) + chunk(b"IEND", b"")
+          open("AppDir/usr/share/icons/hicolor/256x256/apps/yosys.png", "wb").write(png)
+          print("Valid icon created")
+          '
 
       - name: Download linuxdeploy
         run: |
