@@ -2,8 +2,8 @@
 
 > Portable, single-file **AppImages** for open-source EDA tools — built automatically from official upstream releases.
 
-[![Latest release](https://img.shields.io/github/v/release/MrAbhi19/open-eda-appimages?label=latest)](../../releases/latest)
-[![Build](https://github.com/MrAbhi19/open-eda-appimages/actions/workflows/build-yosys-appimage.yml/badge.svg)](../../actions/workflows/build-yosys-appimage.yml)
+[![Latest release](https://img.shields.io/github/v/release/MrAbhi19/open-eda-appimage?label=latest)](../../releases/latest)
+[![Build](https://github.com/MrAbhi19/open-eda-appimage/actions/workflows/build-yosys-appimage.yml/badge.svg)](../../actions/workflows/build-yosys-appimage.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 No installation. No dependencies. No container. Download one file, `chmod +x`, run.
@@ -47,25 +47,6 @@ chmod +x yosys-0.69-x86_64.AppImage
 Or grab it from the [**Releases page**](../../releases/latest) if you prefer a browser.
 
 > **Note:** the `latest/download/` URL requires the exact filename. When a new Yosys version is released, the filename changes (e.g. `yosys-0.70-x86_64.AppImage`). Check the releases page for the current one.
-
----
-
-## Usage
-
-The AppImage behaves exactly like a normal `yosys` binary — pass flags directly:
-
-```bash
-# Version
-./yosys-0.69-x86_64.AppImage --version
-  
-# Run a synthesis script
-./yosys-0.69-x86_64.AppImage -p "read_verilog design.v; synth; stat"
-
-# Interactive shell
-./yosys-0.69-x86_64.AppImage
-```
-
-For full Yosys documentation, see the [upstream project](https://github.com/YosysHQ/yosys).
 
 ---
 
