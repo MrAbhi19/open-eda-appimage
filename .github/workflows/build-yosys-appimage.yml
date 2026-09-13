@@ -96,7 +96,6 @@ jobs:
           if-no-files-found: error
 
       - name: Create GitHub Release (only on tags)
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.69
