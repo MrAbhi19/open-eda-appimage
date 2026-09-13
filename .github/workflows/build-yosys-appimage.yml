@@ -1,14 +1,14 @@
 name: Build Yosys 0.69 AppImage
 
 on:
-  workflow_dispatch:          # manual trigger (you click a button)
+  workflow_dispatch:          # you click "Run workflow"
   push:
     tags:
-      - 'v*'                  # also runs when you push a tag like v0.69
+      - 'v*'
 
 jobs:
   build:
-    runs-on: ubuntu-22.04     # older Ubuntu = better compatibility for AppImage
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout this repository
         uses: actions/checkout@v4
@@ -22,18 +22,19 @@ jobs:
             tcl-dev zlib1g-dev graphviz xdot \
             wget curl file desktop-file-utils
 
-          # Newer CMake (Yosys needs >= 3.28)
+          # Yosys needs CMake >= 3.28
           sudo snap install cmake --classic
 
-      - name: Download Yosys 0.69 source
+      - name: Download and extract Yosys 0.69
         run: |
-          wget https://github.com/YosysHQ/yosys/releases/download/v0.69/yosys.tar.gz
+          wget -q https://github.com/YosysHQ/yosys/releases/download/v0.69/yosys.tar.gz
+          # The tarball extracts flat (no top-level folder)
           tar xf yosys.tar.gz
-          # The tarball extracts to a directory named "yosys"
           ls -la
+          # Make sure we are in the source root
+          test -f CMakeLists.txt && echo "Source looks good"
 
       - name: Configure Yosys with CMake
-        working-directory: yosys
         run: |
           cmake -B build . \
             -DCMAKE_BUILD_TYPE=Release \
@@ -42,24 +43,21 @@ jobs:
             -DYOSYS_WITHOUT_SLANG=ON
 
       - name: Build Yosys
-        working-directory: yosys
         run: |
           cmake --build build --config Release --parallel $(nproc)
 
       - name: Install Yosys into AppDir
-        working-directory: yosys
         run: |
-          # Install into a temporary AppDir (this is the structure AppImage needs)
+          # Install into AppDir/usr (standard AppImage layout)
           cmake --install build --prefix AppDir/usr --strip
+          ls -la AppDir/usr/bin/
 
       - name: Create .desktop file and icon
-        working-directory: yosys
         run: |
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 
-          # Minimal desktop entry
-          cat > AppDir/usr/share/applications/yosys.desktop << EOF
+          cat > AppDir/usr/share/applications/yosys.desktop << 'EOF'
           [Desktop Entry]
           Name=Yosys
           Exec=yosys
@@ -70,9 +68,9 @@ jobs:
           Comment=Yosys Open SYnthesis Suite
           EOF
 
-          # Simple placeholder icon (you can replace later)
-          # We use a 1x1 transparent PNG for now so the build succeeds
-          printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xdb\x00\x00\x00\x00IEND\xaeB`\x82' > AppDir/usr/share/icons/hicolor/256x256/apps/yosys.png
+          # Tiny valid 1×1 PNG as placeholder icon
+          printf '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xdb\x00\x00\x00\x00IEND\xaeB`\x82' \
+            > AppDir/usr/share/icons/hicolor/256x256/apps/yosys.png
 
       - name: Download linuxdeploy
         run: |
@@ -80,37 +78,30 @@ jobs:
           chmod +x linuxdeploy-x86_64.AppImage
 
       - name: Create the AppImage
-        working-directory: yosys
         env:
-          # Make the AppImage updateable later if you want
           LDAI_OUTPUT: Yosys-0.69-x86_64.AppImage
         run: |
-          ../linuxdeploy-x86_64.AppImage \
+          ./linuxdeploy-x86_64.AppImage \
             --appdir AppDir \
             --executable AppDir/usr/bin/yosys \
             --desktop-file AppDir/usr/share/applications/yosys.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/yosys.png \
             --output appimage
 
-          # Move the finished AppImage to the top level so the next step can find it
-          mv Yosys-0.69-x86_64.AppImage .. || mv *.AppImage ..
+          ls -lh *.AppImage
 
       - name: Upload AppImage as artifact
         uses: actions/upload-artifact@v4
         with:
           name: Yosys-0.69-x86_64.AppImage
-          path: |
-            *.AppImage
-            yosys/*.AppImage
+          path: Yosys-0.69-x86_64.AppImage
           if-no-files-found: error
 
-      - name: (Optional) Create a GitHub Release
+      - name: Create GitHub Release (only on tags)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            *.AppImage
-            yosys/*.AppImage
+          files: Yosys-0.69-x86_64.AppImage
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
