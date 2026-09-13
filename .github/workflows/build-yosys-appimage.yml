@@ -20,7 +20,8 @@ jobs:
             gawk git make python3 lld bison clang flex \
             libffi-dev libfl-dev libreadline-dev pkg-config \
             tcl-dev zlib1g-dev graphviz xdot \
-            wget curl file desktop-file-utils
+            wget curl file desktop-file-utils \
+            python3-pil
 
           # Yosys needs CMake >= 3.28
           sudo snap install cmake --classic
@@ -48,7 +49,7 @@ jobs:
           cmake --install build --prefix AppDir/usr --strip
           ls -la AppDir/usr/bin/
 
-      - name: Create .desktop file and valid icon
+      - name: Create .desktop file and valid 256×256 icon
         run: |
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
@@ -64,17 +65,12 @@ jobs:
           Comment=Yosys Open SYnthesis Suite
           EOF
 
-          # Valid 1×1 transparent PNG (correct CRC)
+          # Create a proper 256×256 blue icon
           python3 -c '
-          import struct, zlib
-          raw = b"\x00\x00\x00\x00\x00"
-          compressed = zlib.compress(raw)
-          ihdr = struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0)
-          def chunk(tag, data):
-              return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", zlib.crc32(tag + data) & 0xffffffff)
-          png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", compressed) + chunk(b"IEND", b"")
-          open("AppDir/usr/share/icons/hicolor/256x256/apps/yosys.png", "wb").write(png)
-          print("Valid icon created")
+          from PIL import Image
+          img = Image.new("RGBA", (256, 256), (30, 100, 200, 255))
+          img.save("AppDir/usr/share/icons/hicolor/256x256/apps/yosys.png", "PNG")
+          print("256x256 icon created successfully")
           '
 
       - name: Download linuxdeploy
