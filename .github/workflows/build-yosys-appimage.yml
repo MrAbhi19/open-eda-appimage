@@ -1,0 +1,119 @@
+name: Build Yosys 0.69 AppImage
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gawk git make python3 lld bison clang flex \
+            libffi-dev libfl-dev libreadline-dev pkg-config \
+            tcl-dev zlib1g-dev graphviz xdot \
+            wget curl file desktop-file-utils \
+            python3-pil
+
+          sudo snap install cmake --classic
+
+      - name: Download and extract Yosys 0.69
+        run: |
+          wget -q https://github.com/YosysHQ/yosys/releases/download/v0.69/yosys.tar.mz
+          tar xf yosys.tar.gz
+          test -f CMakeLists.txt && echo "Source looks good"
+
+      - name: Configure Yosys with CMake
+        run: |
+          cmake -B build . \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DYOSIS_WITHOUT_EDITLINE=ON \
+            -DYOSIS_WITHOUT_SLANG=ON
+
+      - name: Build Yosys
+        run: |
+          cmake --build build --config Release --parallel $(nproc)
+
+      - name: Install Yosys into AppDir
+        run: |
+          cmake --install build --prefix AppDir/usr --strip
+
+      - name: Create .desktop file and 256x256 icon
+        run: |
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+
+          cat > AppDir/usr/share/applications/yosys.desktop << 'EOF'
+          [Desktop Entry]
+          Name=Yosys
+          Exec=yosys
+          Icon=yosys
+          Type=Application
+          Categories=Development;Electronics;
+          Terminal=true
+          Comment=Yosys Open SYNthesis Suite
+          EOF
+
+          python3 -c '
+          from PIL import Image
+          img = Image.new("RGBA", (256, 256), (30, 100, 200, 255))
+          img.save("AppDir/usr/share/icons/hicolor/256x256/apps/yosys.png", "PNG")
+          '
+
+      - name: Download linuxdeploy
+        run: |
+          wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+          chmod +x linuxdeploy-x86_64.AppImage
+
+      - name: Create the AppImage
+        run: |
+          ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --executable AppDir/usr/bin/yosys \
+            --desktop-file AppDir/usr/share/applications/yosys.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/yosys.png \
+            --output appimage
+
+          ls -lh *.AppImage
+
+      - name: Upload AppImage as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Yosys-0.69x86_64.AppImage
+          path: "*.AppImage"
+
+      - name: Create GitHub Release (AppImage only)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.69
+          name: Yosys 0.69 AppImage
+          body: |
+            Standalone AppImage of **Yosys 0.69** for Linux x86_64.
+
+            Built completely from the official source tarball.
+            Full transparent build logs are available in the Actions tab.
+
+            ### How to use
+            ```bash
+            chmod +x Yosys-0.69x86_64.AppImage
+            ./Yosys-0.69x86_64.AppImage
+            ```
+          files: "*.AppImage"
+          draft: false
+          prerelease: false
+          make_latest: true
+          fail_on_unmatched_files: true
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
