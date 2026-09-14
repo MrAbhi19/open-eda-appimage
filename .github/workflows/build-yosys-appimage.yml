@@ -1,3 +1,6 @@
+# Unofficial Yosys AppImage build workflow
+# Copyright (c) 2026 Abhilash M — MIT License (see LICENSE)
+
 name: Build Yosys AppImage
 
 on:
