@@ -1,4 +1,4 @@
-# open-eda-appimages
+# open-eda-appimage
 
 > Portable, single-file **AppImages** for open-source EDA tools — built automatically from official upstream releases.
 
@@ -39,7 +39,7 @@ This repo builds a **standalone AppImage** for each new upstream release, so you
 Direct download with `wget`:
 
 ```bash
-wget https://github.com/MrAbhi19/open-eda-appimages/releases/latest/download/yosys-0.69-x86_64.AppImage
+wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-x86_64.AppImage
 chmod +x yosys-0.69-x86_64.AppImage
 ./yosys-0.69-x86_64.AppImage --version
 ```
