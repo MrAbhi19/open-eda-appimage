@@ -2,12 +2,27 @@ name: Build Yosys 0.69 AppImage
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Yosys Version (e.g. 0.69, 0.68)'
+        required: true
+        default: '0.69'
+        type: string
+      make_latest:
+        description: 'Mark this release as GitHub "Latest"?'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 permissions:
   contents: write
 
 env:
-  APPIMAGE_NAME: "yosys-0.69-x86_64.AppImage"
+  YOSYS_VERSION: ${{ inputs.version }}
+  APPIMAGE_NAME: "yosys-${{ inputs.version }}-x86_64.AppImage"
 
 jobs:
   build:
@@ -27,9 +42,9 @@ jobs:
             python3-pil
           sudo snap install cmake --classic
 
-      - name: Download and extract Yosys 0.69
+      - name: Download and extract Yosys ${{ env.YOSYS_VERSION }}
         run: |
-          wget -q https://github.com/YosysHQ/yosys/releases/download/v0.69/yosys.tar.gz
+          wget -q https://github.com/YosysHQ/yosys/releases/download/v${{ env.YOSYS_VERSION }}/yosys.tar.gz
           tar xf yosys.tar.gz
           test -f CMakeLists.txt && echo "Source looks good"
 
@@ -118,30 +133,30 @@ jobs:
       - name: Upload AppImage as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: yosys-0.69-x86_64.AppImage
+          name: ${{ env.APPIMAGE_NAME }}
           path: |
-            yosys-*.AppImage
-            yosys-*.AppImage.sha256
+            ${{ env.APPIMAGE_NAME }}
+            ${{ env.APPIMAGE_NAME }}.sha256
           if-no-files-found: error
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: yosys-v0.69
-          name: Yosys 0.69 AppImage
+          tag_name: yosys-v${{ env.YOSYS_VERSION }}
+          name: Yosys ${{ env.YOSYS_VERSION }} AppImage
           overwrite_files: true
           body: |
-            ## Yosys 0.69 - Linux x86_64 AppImage
+            ## Yosys ${{ env.YOSYS_VERSION }} - Linux x86_64 AppImage
 
-            A standalone, portable AppImage of **Yosys 0.69** built from the [official upstream source tarball](https://github.com/YosysHQ/yosys/releases/tag/v0.69).
+            A standalone, portable AppImage of **Yosys ${{ env.YOSYS_VERSION}}** built from the [official upstream source tarball](https://github.com/YosysHQ/yosys/releases/tag/v${{ env.YOSYS_VERSION }}).
 
             ---
 
             ### Quick start
 
             ```
-            chmod +x yosys-0.69-x86_64.AppImage
-            ./yosys-0.69-x86_64.AppImage --version
+            chmod +x yosys-${{ env.YOSYS_VERSION }}-x86_64.AppImage
+            ./yosys-${{ env.YOSYS_VERSION }}-x86_64.AppImage --version
             ```
 
             ### Requirements
@@ -155,7 +170,7 @@ jobs:
             Or use the attached checksum file:
             
             ```
-            sha256sum -c yosys-0.69-x86_64.AppImage.sha256
+            sha256sum -c ${{ env.APPIMAGE_NAME}}.sha256
             ```
 
             ### Notes
@@ -168,11 +183,11 @@ jobs:
 
             *Yosys is developed by the YosysHQ team and contributors. This is an unofficial repackaging - upstream project: https://github.com/YosysHQ/Yosys*
           files: |
-            yosys-*.AppImage
-            yosys-*.AppImage.sha256
+            ${{ env.APPIMAGE_NAME }}
+            ${{ env.APPIMAGE_NAME }}.sha256
           draft: false
           prerelease: false
-          make_latest: true
+          make_latest: ${{ inputs.make_latest }}
           fail_on_unmatched_files: true
           generate_release_notes: false
         env:
