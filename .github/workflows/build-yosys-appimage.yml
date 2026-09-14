@@ -1,4 +1,4 @@
-name: Build Yosys 0.69 AppImage
+name: Build Yosys AppImage
 
 on:
   workflow_dispatch:
@@ -143,7 +143,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: yosys-v${{ env.YOSYS_VERSION }}
-          name: Yosys ${{ env.YOSYS_VERSION }} AppImage
+          name: Yosys ${{ env.YOSYS_VERSION }}
           overwrite_files: true
           body: |
             ## Yosys ${{ env.YOSYS_VERSION }} - Linux x86_64 AppImage
