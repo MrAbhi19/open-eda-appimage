@@ -8,14 +8,6 @@
 
 No installation. No dependencies. No container. Download one file, `chmod +x`, run.
 
----
-
-## Why this repo exists
-
-Getting up-to-date open-source EDA tools on a normal Linux system is annoying:
-
-- **Distro packages lag behind** — apt/dnf often ship versions that are years old.
-- **Building from source** means toolchains, dependencies, and time you don't want to spend.
 - **Full EDA bundles** (like OSS CAD Suite) are great, but ~2 GB if you only need one tool.
 
 This repo builds a **standalone AppImage** for each new upstream release, so you can grab one file and go. Every build runs in public GitHub Actions from the official source tarball — no patches, no forks, no hidden steps.
