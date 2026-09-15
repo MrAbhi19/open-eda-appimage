@@ -19,6 +19,11 @@ on:
         options:
           - 'true'
           - 'false'
+      create_release:
+        description: 'Create GitHub Release?'
+        required: true
+        default: true
+        type: boolean
 
 permissions:
   contents: write
@@ -144,6 +149,7 @@ jobs:
           if-no-files-found: error
 
       - name: Create GitHub Release
+        if: ${{ inputs.create_release }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: yosys-v${{ env.YOSYS_VERSION }}
