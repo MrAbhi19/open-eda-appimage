@@ -44,12 +44,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            cmake \
             gawk git make python3 lld bison clang flex \
             libffi-dev libfl-dev libreadline-dev pkg-config \
             tcl-dev zlib1g-dev graphviz xdot \
             wget curl file desktop-file-utils \
             python3-pil
-          sudo snap install cmake --classic
 
       - name: Download and extract Yosys ${{ env.YOSYS_VERSION }}
         run: |
