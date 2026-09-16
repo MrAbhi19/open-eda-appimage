@@ -1,0 +1,51 @@
+# Workflow to test Yosys AppImage by synthesizing picorv32
+name: Test Yosys AppImage
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Yosys Version to test (e.g. 0.69)'
+        required: true
+        default: '0.69'
+        type: string
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
+    steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y wget curl git python3 libfuse2
+
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
+      - name: Download Yosys AppImage
+        env:
+          YOSYS_VERSION: ${{ inputs.version }}
+        run: |
+          APPIMAGE_URL="https://github.com/${{ github.repository }}/releases/download/yosys-v${YOSYS_VERSION}/yosys-${YOSYS_VERSION}-x86_64.AppImage"
+          echo "Downloading from: $APPIMAGE_URL"
+          wget -q "$APPIMAGE_URL" -O yosys.AppImage
+          chmod +x yosys.AppImage
+
+      - name: Download picorv32 source
+        run: |
+          wget -q https://raw.githubusercontent.com/YosysHQ/picorv32/master/picorv32.v
+
+      - name: Create Synthesis Script
+        run: |
+          cat << 'TCL_EOF' > synth.tcl
+          read_verilog picorv32.v
+          synth -top picorv32
+          stat
+          TCL_EOF
+
+      - name: Test AppImage and Synthesize
+        run: |
+          ./yosys.AppImage --version
+          ./yosys.AppImage -c synth.tcl

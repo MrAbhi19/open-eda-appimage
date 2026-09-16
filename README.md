@@ -59,6 +59,17 @@ All other runtime dependencies (Clang runtime, Tcl, readline, zlib, etc.) are bu
 
 ---
 
+## Testing
+
+[![Test](https://github.com/MrAbhi19/open-eda-appimage/actions/workflows/test-yosys-appimage.yml/badge.svg)](../../actions/workflows/test-yosys-appimage.yml)
+
+The AppImage is tested against a completely new Docker image of `debian:bookworm` to ensure the standalone binary works correctly. It does this by synthesizing the [picorv32](https://github.com/YosysHQ/picorv32) RISC-V CPU core. Check out the run logs or inspect the [Test Yosys AppImage](.github/workflows/test-yosys-appimage.yml) workflow file to see how it works.
+
+The workflow is manually triggered (via `workflow_dispatch`), and takes the Yosys version to pull from our release page as an input. Currently, this performs a basic synthesis test on `picorv32`, but we will add more tests in the future.
+Note that the yosys 0.67 version is for verification and experimentation of new methods so please don't install yosys 0.67.
+
+---
+
 ## Verify your download
 
 Every release includes a `.sha256` checksum next to the AppImage. Verify with:
