@@ -43,7 +43,7 @@ jobs:
           read_verilog picorv32.v
           synth -top picorv32
           stat
-          TCL_EOF
+          EOF
 
       - name: Test AppImage and Synthesize
         run: |
