@@ -28,9 +28,6 @@ on:
 permissions:
   contents: write
 
-env:
-  YOSYS_VERSION: ${{ inputs.version }}
-
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -43,6 +40,7 @@ jobs:
             appimage_arch: aarch64
     env:
       APPIMAGE_NAME: "yosys-${{ inputs.version }}-${{ matrix.appimage_arch }}.AppImage"
+      YOSYS_VERSION: ${{ inputs.version }}
     timeout-minutes: 30
     steps:
       - name: Checkout this repository
