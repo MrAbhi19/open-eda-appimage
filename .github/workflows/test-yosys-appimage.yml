@@ -39,7 +39,7 @@ jobs:
 
       - name: Create Synthesis Script
         run: |
-          cat << 'TCL_EOF' > synth.tcl
+          cat << 'EOF' > synth.ys
           read_verilog picorv32.v
           synth -top picorv32
           stat
@@ -47,6 +47,5 @@ jobs:
 
       - name: Test AppImage and Synthesize
         run: |
-          # This will now work natively using FUSE, proving libfuse2 compatibility
           ./yosys.AppImage --version
-          ./yosys.AppImage -c synth.tcl
+          ./yosys.AppImage -s synth.ys
