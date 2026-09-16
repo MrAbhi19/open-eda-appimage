@@ -1,0 +1,47 @@
+name: Request a new tool
+description: Suggest a new open-source EDA tool to be packaged as an AppImage
+title: "[Tool] <tool name>"
+labels: ["tool-request", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a tool! Please provide as much detail as possible so we can evaluate feasibility.
+        The tool must be open source and buildable from source.
+
+  - type: input
+    id: tool_name
+    attributes:
+      label: Tool name
+      description: Name of the EDA tool.
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: input
+    id: upstream
+    attributes:
+      label: Upstream repository
+      description: Link to the official source repository.
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: input
+    id: license
+    attributes:
+      label: License
+      description: The tool's license (e.g. GPL-3.0, Apache-2.0, MIT).
+      placeholder: "LGPL-3.0"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: The tool is open source and buildable from source.
+          required: true
+        - label: I have checked existing issues and this tool has not already been requested.
+          required: true
