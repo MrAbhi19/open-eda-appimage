@@ -45,7 +45,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             cmake \
-            gawk git make python3 lld bison clang flex \
+            ninja-build gawk git make python3 lld bison clang flex \
             libffi-dev libfl-dev libreadline-dev pkg-config \
             tcl-dev zlib1g-dev graphviz xdot \
             wget curl file desktop-file-utils \
@@ -59,8 +59,9 @@ jobs:
 
       - name: Configure Yosys with CMake
         run: |
-          cmake -B build . \
+          cmake -B build -G Ninja . \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON \
             -DCMAKE_INSTALL_PREFIX=/usr \
             -DYOSYS_WITHOUT_EDITLINE=ON \
             -DYOSYS_WITHOUT_SLANG=ON
@@ -99,11 +100,12 @@ jobs:
 
       - name: Download linuxdeploy
         run: |
-          wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+          wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage"
           chmod +x linuxdeploy-x86_64.AppImage
 
       - name: Create the AppImage
         run: |
+          export OUTPUT_APPIMAGE_COMP=zstd
           ./linuxdeploy-x86_64.AppImage \
             --appdir AppDir \
             --executable AppDir/usr/bin/yosys \
