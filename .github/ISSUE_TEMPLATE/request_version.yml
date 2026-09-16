@@ -1,0 +1,49 @@
+name: Request a specific version
+description: Ask for a specific version of an existing EDA tool to be built and published as an AppImage
+title: "[Version] <tool> <version>"
+labels: ["version-request", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for requesting a version! Please fill out the details below.
+        Check the [releases page](../../releases) first to confirm the version isn't already published.
+
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Tool
+      description: Which tool do you want this version for?
+      options:
+        - Yosys
+        - Other (specify in the notes below)
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The exact version tag you want (e.g. 0.69, 0.70).
+      placeholder: "0.69"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Why do you need this version?
+      description: A short note on your use case — helps us prioritize.
+      placeholder: "I need this version for a project that depends on a fix in that release."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I have checked the releases page and this version is not already published.
+          required: true
+        - label: I understand that experimental or reserved versions may not be built for regular use.
+          required: false
