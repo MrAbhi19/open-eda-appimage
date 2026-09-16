@@ -12,29 +12,37 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
     steps:
-      - name: Checkout this repository
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libfuse2
-
-      - name: Download Yosys AppImage
+      - name: Download Yosys AppImage and picorv32 source
+        uses: actions/github-script@v7
         env:
-          YOSYS_VERSION: ${{ inputs.version }}
-        run: |
-          APPIMAGE_URL="https://github.com/${{ github.repository }}/releases/download/yosys-v${YOSYS_VERSION}/yosys-${YOSYS_VERSION}-x86_64.AppImage"
-          echo "Downloading from: $APPIMAGE_URL"
-          wget -q "$APPIMAGE_URL" -O yosys.AppImage
-          chmod +x yosys.AppImage
-          ./yosys.AppImage --version
+          APPIMAGE_URL: "https://github.com/${{ github.repository }}/releases/download/yosys-v${{ inputs.version }}/yosys-${{ inputs.version }}-x86_64.AppImage"
+        with:
+          script: |
+            const fs = require('fs');
 
-      - name: Download picorv32 source
-        run: |
-          wget -q https://raw.githubusercontent.com/YosysHQ/picorv32/master/picorv32.v
+            async function download(url, dest) {
+              const res = await fetch(url);
+              if (res.status === 301 || res.status === 302) {
+                return download(res.headers.get('location'), dest);
+              }
+              if (!res.ok) throw new Error(`unexpected response ${res.statusText}`);
+              const buffer = Buffer.from(await res.arrayBuffer());
+              fs.writeFileSync(dest, buffer);
+            }
+
+            const appimageUrl = process.env.APPIMAGE_URL;
+            const picorv32Url = "https://raw.githubusercontent.com/YosysHQ/picorv32/master/picorv32.v";
+
+            console.log(`Downloading ${appimageUrl}`);
+            await download(appimageUrl, 'yosys.AppImage');
+            fs.chmodSync('yosys.AppImage', 0o755);
+
+            console.log(`Downloading ${picorv32Url}`);
+            await download(picorv32Url, 'picorv32.v');
 
       - name: Create Synthesis Script
         run: |
@@ -44,6 +52,8 @@ jobs:
           stat
           TCL_EOF
 
-      - name: Synthesize picorv32
+      - name: Test AppImage Extract and Synthesize
         run: |
-          ./yosys.AppImage -c synth.tcl
+          # FUSE is not installed, so use --appimage-extract-and-run
+          APPIMAGE_EXTRACT_AND_RUN=1 ./yosys.AppImage --version
+          APPIMAGE_EXTRACT_AND_RUN=1 ./yosys.AppImage -c synth.tcl

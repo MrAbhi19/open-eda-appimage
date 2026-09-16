@@ -4,7 +4,6 @@
 
 [![Latest release](https://img.shields.io/github/v/release/MrAbhi19/open-eda-appimage?label=latest)](../../releases/latest)
 [![Build](https://github.com/MrAbhi19/open-eda-appimage/actions/workflows/build-yosys-appimage.yml/badge.svg)](../../actions/workflows/build-yosys-appimage.yml)
-[![Test](https://github.com/MrAbhi19/open-eda-appimage/actions/workflows/test-yosys-appimage.yml/badge.svg)](../../actions/workflows/test-yosys-appimage.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 No installation. No dependencies. No container. Download one file, `chmod +x`, run.
@@ -62,7 +61,9 @@ All other runtime dependencies (Clang runtime, Tcl, readline, zlib, etc.) are bu
 
 ## Testing
 
-The AppImage is tested by synthesizing the [picorv32](https://github.com/YosysHQ/picorv32) RISC-V CPU core to ensure the binary works correctly. The testing process is automated in the [Test Yosys AppImage](.github/workflows/test-yosys-appimage.yml) GitHub Actions workflow.
+[![Test](https://github.com/MrAbhi19/open-eda-appimage/actions/workflows/test-yosys-appimage.yml/badge.svg)](../../actions/workflows/test-yosys-appimage.yml)
+
+The AppImage is tested against a completely new Docker image of `debian:bookworm` (without installing any additional dependencies, such as FUSE) to ensure the standalone binary works correctly. It does this by synthesizing the [picorv32](https://github.com/YosysHQ/picorv32) RISC-V CPU core. Check out the run logs or inspect the [Test Yosys AppImage](.github/workflows/test-yosys-appimage.yml) workflow file to see how it works.
 
 The workflow is manually triggered (via `workflow_dispatch`), and takes the Yosys version to pull from our release page as an input. Currently, this performs a basic synthesis test on `picorv32`, but we will add more tests in the future.
 
