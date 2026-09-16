@@ -4,6 +4,7 @@
 
 [![Latest release](https://img.shields.io/github/v/release/MrAbhi19/open-eda-appimage?label=latest)](../../releases/latest)
 [![Build](https://github.com/MrAbhi19/open-eda-appimage/actions/workflows/build-yosys-appimage.yml/badge.svg)](../../actions/workflows/build-yosys-appimage.yml)
+[![Test](https://github.com/MrAbhi19/open-eda-appimage/actions/workflows/test-yosys-appimage.yml/badge.svg)](../../actions/workflows/test-yosys-appimage.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 No installation. No dependencies. No container. Download one file, `chmod +x`, run.
@@ -56,6 +57,14 @@ Or grab it from the [**Releases page**](../../releases/latest) if you prefer a b
 - glibc 2.35 or newer — Ubuntu 22.04+, Debian 12+, Fedora 36+, or equivalent
 
 All other runtime dependencies (Clang runtime, Tcl, readline, zlib, etc.) are bundled inside the AppImage.
+
+---
+
+## Testing
+
+The AppImage is tested by synthesizing the [picorv32](https://github.com/YosysHQ/picorv32) RISC-V CPU core to ensure the binary works correctly. The testing process is automated in the [Test Yosys AppImage](.github/workflows/test-yosys-appimage.yml) GitHub Actions workflow.
+
+The workflow is manually triggered (via `workflow_dispatch`), and takes the Yosys version to pull from our release page as an input. Currently, this performs a basic synthesis test on `picorv32`, but we will add more tests in the future.
 
 ---
 
