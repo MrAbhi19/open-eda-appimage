@@ -12,14 +12,14 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    container:
-      image: debian:bookworm
+    runs-on: ubuntu-22.04
+    
     steps:
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get install -y wget curl git python3 libfuse2
+          sudo apt-get update
+          # libfuse2 is required for AppImages on Ubuntu 22.04+
+          sudo apt-get install -y wget curl git python3 libfuse2
 
       - name: Checkout this repository
         uses: actions/checkout@v4
@@ -47,5 +47,6 @@ jobs:
 
       - name: Test AppImage and Synthesize
         run: |
+          # This will now work natively using FUSE, proving libfuse2 compatibility
           ./yosys.AppImage --version
           ./yosys.AppImage -c synth.tcl
