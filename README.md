@@ -63,10 +63,13 @@ All other runtime dependencies (Clang runtime, Tcl, readline, zlib, etc.) are bu
 
 [![Test](https://github.com/MrAbhi19/open-eda-appimage/actions/workflows/test-yosys-appimage.yml/badge.svg)](../../actions/workflows/test-yosys-appimage.yml)
 
-The AppImage is tested against a completely new Docker image of `debian:bookworm` to ensure the standalone binary works correctly. It does this by synthesizing the [picorv32](https://github.com/YosysHQ/picorv32) RISC-V CPU core. Check out the run logs or inspect the [Test Yosys AppImage](.github/workflows/test-yosys-appimage.yml) workflow file to see how it works.
+Every AppImage is verified on a clean `ubuntu-22.04` GitHub Actions runner to confirm the standalone binary works end-to-end. The test downloads the AppImage from the release page, fetches the [picorv32](https://github.com/YosysHQ/picorv32) RISC-V CPU core, and synthesizes it with `yosys -s synth.ys` to validate the full flow (`read_verilog` → `synth` → `stat`).
 
-The workflow is manually triggered (via `workflow_dispatch`), and takes the Yosys version to pull from our release page as an input. Currently, this performs a basic synthesis test on `picorv32`, but we will add more tests in the future.
-Note that the yosys 0.67 version is for verification and experimentation of new methods so please don't install yosys 0.67.
+See the [Test Yosys AppImage](.github/workflows/test-yosys-appimage.yml) workflow for the exact steps, or check the latest run logs via the badge above.
+
+The workflow is manually triggered (`workflow_dispatch`) and takes the Yosys version to pull from the release page as an input. It currently runs a basic synthesis test on `picorv32`; more tests will be added over time.
+
+> **Note:** Yosys `0.67` is reserved for verification and experimentation of new packaging methods. Please do not install it for regular use.
 
 ---
 
@@ -101,12 +104,6 @@ Every release is built automatically by **GitHub Actions** on Ubuntu 22.04:
 `editline` and `slang` are disabled to keep the bundle small and portable — readline is used for the interactive shell instead.
 
 Full build logs are public: [**Actions tab**](../../actions).
-
----
-
-## Versions
-
-Each release is tagged `yosys-v<version>` (matching the upstream Yosys version). Re-running the same tag **overwrites** the existing assets, so there's no drift between releases.
 
 ---
 
