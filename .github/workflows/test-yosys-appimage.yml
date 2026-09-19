@@ -10,6 +10,9 @@ on:
         default: '0.69'
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
@@ -56,3 +59,12 @@ jobs:
         run: |
           ./yosys.AppImage --version
           ./yosys.AppImage -s synth.ys
+
+      - name: Append Verification to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: yosys-v${{ inputs.version }}
+          append_body: true
+          body: |
+
+            ✅ **Verified**: Passed synthesis tests on `${{ matrix.appimage_arch }}`.
