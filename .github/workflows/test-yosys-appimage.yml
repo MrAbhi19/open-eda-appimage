@@ -71,35 +71,10 @@ jobs:
 
       - name: Append Verification to Release
         if: steps.download.outputs.skip != 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: yosys-v${{ inputs.version }}
-          ARCH: ${{ matrix.appimage_arch }}
-        run: |
-          VERIFY_MSG="✅ **Verified**: Passed synthesis tests on \`${ARCH}\`."
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: yosys-v${{ inputs.version }}
+          append_body: true
+          body: |
 
-          # Retry loop in case multiple architectures update simultaneously
-          for i in 1 2 3 4 5; do
-            BODY=$(gh release view "$TAG_NAME" --json body -q .body)
-
-            if echo "$BODY" | grep -q "$VERIFY_MSG"; then
-              echo "Verification message already exists for $ARCH."
-              break
-            fi
-
-            if echo "$BODY" | grep -q "^### Notes"; then
-              NEW_BODY=$(echo "$BODY" | awk -v msg="$VERIFY_MSG" '/^### Notes/ {print msg; print ""; print; next} {print}')
-            else
-              NEW_BODY="$BODY\n\n$VERIFY_MSG"
-            fi
-
-            echo -e "$NEW_BODY" > new_release_body.md
-
-            if gh release edit "$TAG_NAME" --notes-file new_release_body.md; then
-              echo "Successfully updated release notes."
-              break
-            else
-              echo "Failed to update release notes. Retrying in 5s..."
-              sleep 5
-            fi
-          done
+            ✅ **Verified**: Passed synthesis tests on `${{ matrix.appimage_arch }}`.
