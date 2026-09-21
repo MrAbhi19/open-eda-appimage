@@ -66,7 +66,7 @@ Every AppImage is verified on a clean `ubuntu-22.04` GitHub Actions runner to co
 
 See the [Test Yosys AppImage](.github/workflows/test-yosys-appimage.yml) workflow for the exact steps, or check the latest run logs via the badge above.
 
-The workflow is manually triggered (`workflow_dispatch`) and takes the Yosys version to pull from the release page as an input. It currently runs a basic synthesis test on `picorv32`; more tests will be added over time. Successfully running this test will automatically append a verification sentence to the corresponding GitHub Release.
+The workflow is manually triggered (`workflow_dispatch`) and takes the Yosys version to pull from the release page as an input. It currently runs a basic synthesis test on `picorv32`; more tests will be added over time.
 
 > **Note:** Yosys `0.67` is reserved for verification and experimentation of new packaging methods. Please do not install it for regular use.
 
