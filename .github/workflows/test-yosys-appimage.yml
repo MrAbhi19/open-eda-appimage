@@ -12,7 +12,14 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            appimage_arch: x86_64
+          - os: ubuntu-22.04-arm
+            appimage_arch: aarch64
     
     steps:
       - name: Install dependencies
@@ -28,7 +35,7 @@ jobs:
         env:
           YOSYS_VERSION: ${{ inputs.version }}
         run: |
-          APPIMAGE_URL="https://github.com/${{ github.repository }}/releases/download/yosys-v${YOSYS_VERSION}/yosys-${YOSYS_VERSION}-x86_64.AppImage"
+          APPIMAGE_URL="https://github.com/${{ github.repository }}/releases/download/yosys-v${YOSYS_VERSION}/yosys-${YOSYS_VERSION}-${{ matrix.appimage_arch }}.AppImage"
           echo "Downloading from: $APPIMAGE_URL"
           wget -q "$APPIMAGE_URL" -O yosys.AppImage
           chmod +x yosys.AppImage
