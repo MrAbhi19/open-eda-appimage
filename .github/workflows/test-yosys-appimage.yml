@@ -29,7 +29,7 @@ jobs:
           sudo apt-get install -y wget curl git python3 libfuse2
 
       - name: Checkout this repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download Yosys AppImage
         env:
