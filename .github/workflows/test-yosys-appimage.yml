@@ -35,27 +35,19 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download Yosys AppImage
-        id: download
         env:
           YOSYS_VERSION: ${{ inputs.version }}
         run: |
           APPIMAGE_URL="https://github.com/${{ github.repository }}/releases/download/yosys-v${YOSYS_VERSION}/yosys-${YOSYS_VERSION}-${{ matrix.appimage_arch }}.AppImage"
           echo "Downloading from: $APPIMAGE_URL"
-          if ! wget -q "$APPIMAGE_URL" -O yosys.AppImage; then
-            echo "AppImage not found for ${APPIMAGE_URL}. Skipping tests."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          wget -q "$APPIMAGE_URL" -O yosys.AppImage
           chmod +x yosys.AppImage
-          echo "skip=false" >> "$GITHUB_OUTPUT"
 
       - name: Download picorv32 source
-        if: steps.download.outputs.skip != 'true'
         run: |
           wget -q https://raw.githubusercontent.com/YosysHQ/picorv32/master/picorv32.v
 
       - name: Create Synthesis Script
-        if: steps.download.outputs.skip != 'true'
         run: |
           cat << 'EOF' > synth.ys
           read_verilog picorv32.v
@@ -64,13 +56,11 @@ jobs:
           EOF
 
       - name: Test AppImage and Synthesize
-        if: steps.download.outputs.skip != 'true'
         run: |
           ./yosys.AppImage --version
           ./yosys.AppImage -s synth.ys
 
       - name: Append Verification to Release
-        if: steps.download.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: yosys-v${{ inputs.version }}
