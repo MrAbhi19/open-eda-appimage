@@ -1,0 +1,171 @@
+---
+layout: default
+title: Home
+nav_order: 1
+---
+
+# Open EDA AppImages
+
+Portable, single-file **AppImages** for open-source EDA tools. No
+installation. No package manager. No container. Download one file,
+`chmod +x`, run.
+
+Built automatically from official upstream sources, so you always get
+a clean, reproducible binary.
+
+---
+
+## Why this exists
+
+- EDA tools move fast. `apt install <your-tool>` gives you whatever
+  your distro froze 1–2 years ago.
+
+- Building them from source is painful. Multiple dependencies, fiddly
+  configure steps, and one small mistake sends you back through the
+  whole process again. After you're done, your system is littered with
+  build tooling you'll probably never use again. Removing all of that
+  cleanly later is another manual chore.
+
+An AppImage solves both problems: one file, no installation, no
+residue.
+
+---
+
+## How to trust this
+
+Don't trust the repo. Don't trust the maintainer. **Audit the workflows
+yourself and trust what you see.**
+
+Everything is public:
+
+- The [build workflows](https://github.com/MrAbhi19/open-eda-appimage/tree/main/.github/workflows)
+  are readable YAML.
+- The [build logs](https://github.com/MrAbhi19/open-eda-appimage/actions)
+  are public for every release.
+- Every release ships with a SHA256 checksum.
+
+There is no human intervention between source and release. Every step —
+fetching the upstream source, building, bundling dependencies,
+verifying the AppImage, computing the checksum, and publishing the
+release — runs on GitHub-hosted runners via GitHub Actions. The
+maintainer doesn't touch the binaries. Neither should you have to.
+
+Transparency is the whole point. You can verify every step.
+
+---
+
+## Requirements
+
+Even packaging has its limits:
+
+- **glibc 2.35 or newer** — Ubuntu 22.04+, Debian 12+, Fedora 36+.
+  We are actively working on lowering this.
+- **FUSE 2** — needed only for direct execution. Most distros ship it;
+  if yours doesn't, install `libfuse2`/`fuse2`, or run with
+  `--appimage-extract-and-run` and skip FUSE entirely.
+- **Architecture** — x86_64 and aarch64 only. More to come.
+
+---
+
+## Available tools
+
+| Tool | Versions | Architectures | Source | Release channel | Details |
+|---|---|---|---|---|---|
+| **ABC** | Rolling | x86_64, aarch64 | [berkeley-abc/abc](https://github.com/berkeley-abc/abc) | Updated every ~10 days (rolling tag `abc-appimage`) | [ABC page →](abc.html) |
+| **Yosys** | 0.68 and newer | x86_64, aarch64 | [YosysHQ/yosys](https://github.com/YosysHQ/yosys) | Tagged per version (`yosys-v<version>`) | [Yosys page →](yosys.html) |
+
+Each tool has a dedicated page covering what the tool is, how to download
+it, and exactly how it is built and packaged: source, build flags, bundler
+versions, and checks.
+
+- [ABC →](abc.html)
+- [Yosys →](yosys.html)
+
+### Coming soon
+
+- **Netgen** — LVS (layout vs. schematic) checker
+- **OpenSTA** — static timing analysis
+
+Follow the [releases page](https://github.com/MrAbhi19/open-eda-appimage/releases)
+or the [Discussions](https://github.com/MrAbhi19/open-eda-appimage/discussions)
+for updates.
+
+---
+
+## Quick start
+
+Pick the tool and version you want, then go to its
+[release page](https://github.com/MrAbhi19/open-eda-appimage/releases)
+and download the AppImage for your architecture.
+
+**Yosys**
+
+```sh
+# Download
+wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-x86_64.AppImage
+
+# Make executable and run
+chmod +x yosys-0.69-x86_64.AppImage
+./yosys-0.69-x86_64.AppImage --version
+
+# Verify the download
+sha256sum -c yosys-0.69-x86_64.AppImage.sha256
+```
+
+**ABC**
+
+```sh
+# Download
+wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/abc-appimage/abc-x86_64.AppImage
+
+# Make executable and run
+chmod +x abc-x86_64.AppImage
+./abc-x86_64.AppImage
+
+# Verify the download
+sha256sum -c abc-x86_64.AppImage.sha256
+```
+
+For ARM64 devices, replace `x86_64` with `aarch64` in the filenames.
+See the [Yosys](yosys.html) and [ABC](abc.html) pages for details.
+
+---
+
+## How releases work
+
+Each tool has its own workflow under
+[`.github/workflows/`](https://github.com/MrAbhi19/open-eda-appimage/tree/main/.github/workflows).
+
+Each workflow:
+
+1. Fetches the upstream source: the official release tarball for Yosys,
+   the latest commit for ABC
+2. Builds natively on Ubuntu 22.04 (x86_64) and Ubuntu 22.04 ARM (aarch64)
+3. Bundles dependencies with
+   [linuxdeploy](https://github.com/linuxdeploy/linuxdeploy) and packs a
+   zstd-compressed AppImage
+4. Smoke tests the AppImage (the ABC workflow also checks for broken symlinks
+   and missing shared libraries)
+5. Publishes to GitHub Releases with a SHA256 checksum
+
+Yosys additionally has a
+[test workflow](https://github.com/MrAbhi19/open-eda-appimage/blob/main/.github/workflows/test-yosys-appimage.yml)
+that downloads the published AppImage and synthesizes the picorv32 RISC-V
+core with it.
+
+Build logs are public in the
+[Actions tab](https://github.com/MrAbhi19/open-eda-appimage/actions).
+
+The exact build flags, dependency lists, and bundling decisions for each
+tool are documented on its dedicated page — see
+[ABC](abc.html) and [Yosys](yosys.html).
+
+---
+
+## Unofficial
+
+These are **unofficial** repackagings. Each tool retains its upstream
+license and is maintained by its own team.
+
+- Bug in the tool itself? Report it upstream.
+- Bug in the packaging? [Open an issue here](https://github.com/MrAbhi19/open-eda-appimage/issues).

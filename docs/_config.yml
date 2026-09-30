@@ -1,0 +1,6 @@
+title: Open EDA AppImages
+description: Portable AppImages for open-source EDA tools
+remote_theme: just-the-docs/just-the-docs
+color_scheme: dark
+search_enabled: true
+footer_content: "Unofficial repackaging. Each tool retains its upstream license."
