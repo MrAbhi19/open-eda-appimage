@@ -1,0 +1,234 @@
+# Unofficial ABC AppImage build workflow
+# Copyright (c) 2026 Abhilash M — MIT License (see LICENSE)
+
+name: Build ABC AppImage
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Every ~10 days: 1st, 11th, 21st of each month at 06:00 UTC.
+    - cron: '0 6 1,11,21 * *'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            appimage_arch: x86_64
+          - os: ubuntu-22.04-arm
+            appimage_arch: aarch64
+    env:
+      APPIMAGE_NAME: "abc-${{ matrix.appimage_arch }}.AppImage"
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            git make gcc g++ \
+            libreadline-dev zlib1g-dev \
+            wget curl file desktop-file-utils \
+            python3-pil libfuse2
+
+      - name: Clone ABC source
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/berkeley-abc/abc.git abc-src
+          cd abc-src
+          COMMIT_HASH=$(git rev-parse HEAD)
+          COMMIT_SHORT=$(git rev-parse --short HEAD)
+          echo "commit_hash=$COMMIT_HASH" >> "$GITHUB_ENV"
+          echo "commit_short=$COMMIT_SHORT" >> "$GITHUB_ENV"
+          echo "Building ABC at commit: $COMMIT_HASH"
+
+      - name: Build ABC (with readline + pthreads)
+        run: |
+          set -euo pipefail
+          cd abc-src
+          make -j"$(nproc)"
+          test -f abc
+          file abc
+          ldd abc
+
+      - name: Install ABC into AppDir
+        run: |
+          set -euo pipefail
+          mkdir -p AppDir/usr/bin
+          cp abc-src/abc AppDir/usr/bin/
+          chmod +x AppDir/usr/bin/abc
+          ls -la AppDir/usr/bin/
+
+      - name: Create .desktop file and 256x256 icon
+        run: |
+          set -euo pipefail
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          cat > AppDir/usr/share/applications/abc.desktop << 'EOF'
+          [Desktop Entry]
+          Name=ABC
+          Exec=abc
+          Icon=abc
+          Type=Application
+          Categories=Development;Electronics;
+          Terminal=true
+          Comment=ABC Logic Synthesis and Formal Verification
+          EOF
+          python3 -c '
+          from PIL import Image
+          img = Image.new("RGBA", (256, 256), (30, 80, 180, 255))
+          img.save("AppDir/usr/share/icons/hicolor/256x256/apps/abc.png", "PNG")
+          print("256x256 icon created successfully")
+          '
+
+      - name: Download linuxdeploy
+        run: |
+          set -euo pipefail
+          wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${{ matrix.appimage_arch }}.AppImage"
+          chmod +x linuxdeploy-${{ matrix.appimage_arch }}.AppImage
+
+      - name: Create the AppImage
+        run: |
+          set -euo pipefail
+          export OUTPUT_APPIMAGE_COMP=zstd
+          ./linuxdeploy-${{ matrix.appimage_arch }}.AppImage \
+            --appdir AppDir \
+            --executable AppDir/usr/bin/abc \
+            --desktop-file AppDir/usr/share/applications/abc.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/abc.png \
+            --output appimage
+
+          if [ ! -f "${{ env.APPIMAGE_NAME }}" ]; then
+            for f in *.AppImage; do
+              case "$f" in
+                linuxdeploy-*.AppImage) continue ;;
+                *) mv -v "$f" "${{ env.APPIMAGE_NAME }}" ;;
+              esac
+            done
+          fi
+          test -f "${{ env.APPIMAGE_NAME }}" || { echo "No AppImage produced"; exit 1; }
+          ls -lh *.AppImage
+
+      - name: Verify no broken symlinks in the AppImage
+        run: |
+          set -euo pipefail
+          ./"${{ env.APPIMAGE_NAME }}" --appimage-extract >/dev/null
+          echo "== Symlinks in usr/lib =="
+          find squashfs-root/usr/lib -maxdepth 1 -type l -printf '%p -> %l\n' || true
+
+          echo "== Broken symlinks =="
+          if find squashfs-root/usr/lib -xtype l | grep -q .; then
+            echo "!! Found broken symlinks:"
+            find squashfs-root/usr/lib -xtype l -printf '%p -> %l\n'
+            exit 1
+          fi
+          echo "No broken symlinks."
+
+          echo "== ldd on the binary =="
+          if ldd squashfs-root/usr/bin/abc | grep -q "not found"; then
+            echo "!! Missing shared libs:"
+            ldd squashfs-root/usr/bin/abc | grep "not found"
+            exit 1
+          fi
+          echo "All shared libs resolved."
+
+      - name: Smoke test the AppImage
+        run: |
+          set -euo pipefail
+          chmod +x "${{ env.APPIMAGE_NAME }}"
+          echo "quit" | ./"${{ env.APPIMAGE_NAME }}" 2>&1 | tee smoke.log
+          grep -qi "UC Berkeley" smoke.log
+          grep -qi "ABC" smoke.log
+          echo "Smoke test passed."
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
+      - name: Compute SHA256 of the AppImage
+        id: sha
+        run: |
+          set -euo pipefail
+          HASH=$(sha256sum "${{ env.APPIMAGE_NAME }}" | awk '{print $1}')
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          echo "SHA256: $HASH"
+
+      - name: Write checksum file
+        run: |
+          set -euo pipefail
+          sha256sum "${{ env.APPIMAGE_NAME }}" > "${{ env.APPIMAGE_NAME }}.sha256"
+          cat "${{ env.APPIMAGE_NAME }}.sha256"
+
+      - name: Upload AppImage as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APPIMAGE_NAME }}
+          path: |
+            ${{ env.APPIMAGE_NAME }}
+            ${{ env.APPIMAGE_NAME }}.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: abc-appimage
+          name: ABC AppImage (Rolling)
+          overwrite_files: true
+          body: |
+            ## ABC — Linux AppImage (x86_64 + aarch64)
+
+            A standalone, portable AppImage of **ABC** built from source at commit
+            [`${{ env.commit_short }}`](https://github.com/berkeley-abc/abc/commit/${{ env.commit_hash }}).
+            
+            ---
+
+            ### Requirements
+            - Linux **x86_64** or **aarch64**
+            - glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+, Fedora 36+, etc.)
+            - FUSE 2 is **optional** — needed only for direct execution of the AppImage.
+              Most desktop distros ship it. If it's missing, either install it
+              (`libfuse2` on Debian/Ubuntu, `fuse2` on Fedora) or run with
+              `--appimage-extract-and-run` which needs no FUSE at all.
+
+            ---
+
+            ### Verify the download
+            
+            Checksum files are attached alongside each AppImage:
+
+            ```
+            sha256sum -c abc-x86_64.AppImage.sha256
+            sha256sum -c abc-aarch64.AppImage.sha256
+            ```
+
+            ---
+            ### Notes
+
+            Built automatically by GitHub Actions from the latest upstream commit on the
+            scheduled run (1st, 11th, 21st of each month) or manually via `workflow_dispatch`.
+            This release uses a rolling tag (`abc-appimage`); each run overwrites the
+            previous asset. See the **Actions** tab for build logs.
+          
+            ---
+
+            *ABC is developed by the Berkeley Logic Synthesis Group. This is an unofficial repackaging — upstream: https://github.com/berkeley-abc/abc*
+          files: |
+            ${{ env.APPIMAGE_NAME }}
+            ${{ env.APPIMAGE_NAME }}.sha256
+          draft: false
+          prerelease: false
+          make_latest: false
+          fail_on_unmatched_files: true
+          generate_release_notes: false
+          token: ${{ secrets.GITHUB_TOKEN }}
