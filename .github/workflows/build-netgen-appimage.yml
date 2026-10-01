@@ -1,0 +1,314 @@
+# Unofficial Netgen AppImage build workflow
+# Copyright (c) 2026 Abhilash M — MIT License (see LICENSE)
+
+name: Build Netgen AppImage
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Netgen Version (e.g. 1.5.323)'
+        required: true
+        default: '1.5.323'
+        type: string
+      make_latest:
+        description: 'Mark this release as GitHub "Latest"?'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      create_release:
+        description: 'Create GitHub Release?'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+env:
+  NETGEN_VERSION: ${{ inputs.version }}
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            appimage_arch: x86_64
+          - os: ubuntu-22.04-arm
+            appimage_arch: aarch64
+    env:
+      APPIMAGE_NAME: "netgen-${{ inputs.version }}-${{ matrix.appimage_arch }}.AppImage"
+    timeout-minutes: 30
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v7
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential autoconf automake m4 libtool \
+            tcl-dev tk-dev libx11-dev libxext-dev libxpm-dev libxt-dev \
+            wget curl file desktop-file-utils python3-pil
+
+      - name: Download and extract Netgen ${{ env.NETGEN_VERSION }}
+        run: |
+          wget -q http://opencircuitdesign.com/netgen/archive/netgen-${{ env.NETGEN_VERSION }}.tgz
+          tar xzf netgen-${{ env.NETGEN_VERSION }}.tgz
+          test -f netgen-${{ env.NETGEN_VERSION }}/configure
+
+      - name: Configure, build, and install Netgen into AppDir
+        run: |
+          cd netgen-${{ env.NETGEN_VERSION }}
+          ./configure --prefix=/usr
+          make -j$(nproc)
+          make install DESTDIR="$PWD/../AppDir"
+
+          test -x ../AppDir/usr/bin/netgen
+          file ../AppDir/usr/lib/netgen/tcl/netgenexec | grep -q ELF
+
+      - name: Bundle Tcl/Tk runtime (shared libs + script libraries)
+        run: |
+          # netgenexec links libtcl/libtk dynamically, so linuxdeploy's ldd
+          # scan picks up the .so files. But the Tcl/Tk *script* libraries
+          # (init.tcl, tk.tcl) are loaded by path lookup, not by the
+          # dynamic linker — ldd never sees them. Without bundling them
+          # explicitly, the AppImage silently falls back to
+          # /usr/share/tcltk on the host and only works on machines that
+          # already have Tcl/Tk installed.
+          set -euo pipefail
+
+          TCL_SO=$(find /usr/lib -name 'libtcl[0-9]*.so*' | head -1)
+          TK_SO=$(find  /usr/lib -name 'libtk[0-9]*.so*'  | head -1)
+          ZLIB_SO=$(find /usr/lib -name 'libz.so*'        | head -1)
+          test -n "$TCL_SO" && test -n "$TK_SO" && test -n "$ZLIB_SO"
+
+          mkdir -p AppDir/usr/lib
+          cp -a "$(dirname "$TCL_SO")"/libtcl*.so* AppDir/usr/lib/
+          cp -a "$(dirname "$TK_SO")"/libtk*.so*   AppDir/usr/lib/
+          cp -a "$(dirname "$ZLIB_SO")"/libz.so*   AppDir/usr/lib/
+
+          TCL_LIB=$(find /usr/share/tcltk /usr/lib -maxdepth 2 -type d -iname 'tcl[0-9].[0-9]' 2>/dev/null | head -1)
+          TK_LIB=$(find  /usr/share/tcltk /usr/lib -maxdepth 2 -type d -iname 'tk[0-9].[0-9]'  2>/dev/null | head -1)
+          test -f "$TCL_LIB/init.tcl"
+          test -f "$TK_LIB/tk.tcl"
+
+          mkdir -p AppDir/usr/share/netgen-tcltk
+          cp -a "$TCL_LIB" AppDir/usr/share/netgen-tcltk/
+          cp -a "$TK_LIB"  AppDir/usr/share/netgen-tcltk/
+
+      - name: Patch netgen wrapper for AppImage relocation + batch mode
+        run: |
+          cat > AppDir/usr/bin/netgen << 'EOF'
+          #!/bin/sh
+          export NETGENDIR="$APPDIR/usr/lib/netgen"
+          export LD_LIBRARY_PATH="$APPDIR/usr/lib:${LD_LIBRARY_PATH:-}"
+
+          for d in "$APPDIR"/usr/share/netgen-tcltk/tcl[0-9].[0-9]; do
+              [ -d "$d" ] && export TCL_LIBRARY="$d"
+          done
+          for d in "$APPDIR"/usr/share/netgen-tcltk/tk[0-9].[0-9]; do
+              [ -d "$d" ] && export TK_LIBRARY="$d"
+          done
+
+          for arg in "$@"; do
+              case "$arg" in
+                  -batch|-noconsole)
+                      exec "$NETGENDIR/tcl/netgenexec" "$@"
+                      ;;
+              esac
+          done
+
+          exec "$NETGENDIR/tcl/netgenexec" "$NETGENDIR/tcl/tkcon.tcl" "$@"
+          EOF
+          chmod +x AppDir/usr/bin/netgen
+
+      - name: Create .desktop file, 256x256 icon, and AppRun
+        run: |
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+
+          cat > AppDir/usr/share/applications/netgen.desktop << 'EOF'
+          [Desktop Entry]
+          Name=Netgen
+          Exec=netgen
+          Icon=netgen
+          Type=Application
+          Categories=Development;Electronics;
+          Terminal=true
+          Comment=Netgen LVS Tool
+          EOF
+
+          python3 -c '
+          from PIL import Image
+          Image.new("RGBA", (256, 256), (30, 100, 200, 255)).save(
+              "AppDir/usr/share/icons/hicolor/256x256/apps/netgen.png", "PNG")
+          '
+
+          cat > AppRun-custom << 'EOF'
+          #!/bin/bash
+          exec "$APPDIR/usr/bin/netgen" "$@"
+          EOF
+          chmod +x AppRun-custom
+
+      - name: Download linuxdeploy
+        run: |
+          wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-${{ matrix.appimage_arch }}.AppImage"
+          chmod +x linuxdeploy-${{ matrix.appimage_arch }}.AppImage
+
+      - name: Create the AppImage
+        run: |
+          X11_LIBS=""
+          for lib in libX11 libXext libXpm libXt; do
+            path=$(find /usr/lib -name "${lib}.so*" | head -1)
+            [ -n "$path" ] && X11_LIBS="$X11_LIBS --library=$path"
+          done
+
+          ./linuxdeploy-${{ matrix.appimage_arch }}.AppImage \
+            --appdir AppDir \
+            --executable AppDir/usr/lib/netgen/tcl/netgenexec \
+            --desktop-file AppDir/usr/share/applications/netgen.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/netgen.png \
+            --custom-apprun AppRun-custom \
+            $X11_LIBS \
+            --output appimage
+
+          if [ ! -f "${{ env.APPIMAGE_NAME }}" ]; then
+            for f in *.AppImage; do
+              case "$f" in
+                linuxdeploy-*.AppImage) continue ;;
+                *) mv "$f" "${{ env.APPIMAGE_NAME }}" ;;
+              esac
+            done
+          fi
+
+          ls -lh *.AppImage
+
+      - name: Verify no unwanted host dependencies remain
+        run: |
+          set -euo pipefail
+          chmod +x "${{ env.APPIMAGE_NAME }}"
+          ./"${{ env.APPIMAGE_NAME }}" --appimage-extract >/dev/null
+
+          export LD_LIBRARY_PATH="$PWD/squashfs-root/usr/lib:${LD_LIBRARY_PATH:-}"
+
+          ALLOWED='^(linux-vdso|ld-linux|libc\.so|libm\.so|libpthread\.so|libdl\.so|librt\.so|libresolv\.so|libnsl\.so|libutil\.so)'
+
+          for f in \
+              squashfs-root/usr/lib/netgen/tcl/netgenexec \
+              squashfs-root/usr/lib/netgen/tcl/tclnetgen.so; do
+            echo "Checking $(basename "$f")..."
+            while read -r line; do
+              lib=$(basename "$(awk '{print $1}' <<<"$line")")
+              resolved=$(awk '{print $3}' <<<"$line")
+
+              if grep -q "not found" <<<"$line"; then
+                echo "  ❌ MISSING: $lib"; exit 1
+              fi
+              grep -qE "$ALLOWED" <<<"$lib" && continue
+              [ -z "$resolved" ]            && continue
+
+              case "$resolved" in
+                */squashfs-root/*) echo "  ✅ $lib (bundled)" ;;
+                *) echo "  ⚠️  HOST DEP: $lib -> $resolved"; exit 1 ;;
+              esac
+            done < <(ldd "$f")
+          done
+
+          test -f squashfs-root/usr/share/netgen-tcltk/tcl*/init.tcl
+          test -f squashfs-root/usr/share/netgen-tcltk/tk*/tk.tcl
+          echo "✅ Only glibc/libfuse required from the host"
+
+          rm -rf squashfs-root
+
+      - name: Smoke test the AppImage
+        run: |
+          chmod +x "${{ env.APPIMAGE_NAME }}"
+          echo "quit" | ./"${{ env.APPIMAGE_NAME }}" -batch
+
+      - name: Compute SHA256 of the AppImage
+        id: sha
+        run: |
+          HASH=$(sha256sum "${{ env.APPIMAGE_NAME }}" | awk '{print $1}')
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          echo "SHA256: $HASH"
+
+      - name: Write checksum file
+        run: |
+          sha256sum "${{ env.APPIMAGE_NAME }}" > "${{ env.APPIMAGE_NAME }}.sha256"
+          cat "${{ env.APPIMAGE_NAME }}.sha256"
+
+      - name: Upload AppImage as artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.APPIMAGE_NAME }}
+          path: |
+            ${{ env.APPIMAGE_NAME }}
+            ${{ env.APPIMAGE_NAME }}.sha256
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: ${{ inputs.create_release }}
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: netgen-v${{ env.NETGEN_VERSION }}
+          name: Netgen ${{ env.NETGEN_VERSION }}
+          overwrite_files: true
+          body: |
+            ## Netgen ${{ env.NETGEN_VERSION }} AppImage
+
+            A standalone, portable AppImage of **Netgen ${{ env.NETGEN_VERSION }}** built from the [official upstream source tarball](http://opencircuitdesign.com/netgen/archive/netgen-${{ env.NETGEN_VERSION }}.tgz).
+
+            Tcl/Tk and required X11 libraries are bundled inside the
+            AppImage, so no system Tcl/Tk installation is needed on the host.
+
+            ---
+
+            ### Quick start
+
+            ```
+            chmod +x netgen-${{ env.NETGEN_VERSION }}-x86_64.AppImage
+            ./netgen-${{ env.NETGEN_VERSION }}-x86_64.AppImage
+            ```
+
+            ### Requirements
+
+            - Linux x86_64, glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+, Fedora 36+, etc.)
+            - `libfuse2` (for running AppImages directly), or use
+              `--appimage-extract-and-run` / set `APPIMAGE_EXTRACT_AND_RUN=1`
+              if FUSE is unavailable (e.g. inside containers).
+
+            ### Verify the download
+
+            SHA256: `${{ steps.sha.outputs.hash }}`
+
+            Or use the attached checksum file:
+            
+            ```
+            sha256sum -c ${{ env.APPIMAGE_NAME }}.sha256
+            ```
+
+            ### Notes
+
+            Built automatically by GitHub Actions. Full build logs in the
+            **Actions** tab.
+
+            ---
+
+            *Netgen is developed by Tim Edwards. This is an unofficial repackaging - upstream project: https://github.com/RTimothyEdwards/netgen*
+          files: |
+            ${{ env.APPIMAGE_NAME }}
+            ${{ env.APPIMAGE_NAME }}.sha256
+          draft: false
+          prerelease: false
+          make_latest: ${{ inputs.make_latest }}
+          fail_on_unmatched_files: true
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
