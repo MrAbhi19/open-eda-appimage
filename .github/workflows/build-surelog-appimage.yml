@@ -1,0 +1,260 @@
+# Unofficial Surelog AppImage build workflow
+# Copyright (c) 2026 Abhilash M — MIT License (see LICENSE)
+
+name: Build Surelog AppImage
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Surelog Version (e.g. v1.81)'
+        required: true
+        default: 'v1.81'
+        type: string
+      make_latest:
+        description: 'Mark this release as GitHub "Latest"?'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      create_release:
+        description: 'Create GitHub Release?'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+env:
+  SURELOG_VERSION: ${{ inputs.version }}
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            appimage_arch: x86_64
+          - os: ubuntu-22.04-arm
+            appimage_arch: aarch64
+    env:
+      APPIMAGE_NAME: "surelog-${{ inputs.version }}-${{ matrix.appimage_arch }}.AppImage"
+    timeout-minutes: 60
+    steps:
+      - name: Checkout Surelog repository
+        uses: actions/checkout@v7
+        with:
+          repository: chipsalliance/Surelog
+          ref: ${{ env.SURELOG_VERSION }}
+          submodules: recursive
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake git pkg-config tclsh swig uuid-dev \
+            python3 python3-orderedmultidict python3-psutil python3-dev \
+            default-jre lcov zlib1g-dev wget curl file desktop-file-utils \
+            python3-pil libunwind-dev
+
+      - name: Build Surelog
+        run: |
+          # release_no_tcmalloc avoids bundling tcmalloc, which is a
+          # common source of AppImage portability issues.
+          make release_no_tcmalloc -j$(nproc)
+
+      - name: Install Surelog into AppDir
+        run: |
+          mkdir -p AppDir
+          make install DESTDIR="$PWD/AppDir" PREFIX=/usr
+          ls -la AppDir/usr/bin/
+          file AppDir/usr/bin/surelog | grep -q ELF
+
+      - name: Create .desktop file, 256x256 icon, and custom AppRun
+        run: |
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+
+          cat > AppDir/usr/share/applications/surelog.desktop << 'EOF'
+          [Desktop Entry]
+          Name=Surelog
+          Exec=surelog
+          Icon=surelog
+          Type=Application
+          Categories=Development;Electronics;
+          Terminal=true
+          Comment=SystemVerilog 2017 Pre-processor, Parser, Elaborator, UHDM Compiler
+          EOF
+
+          python3 -c '
+          from PIL import Image
+          Image.new("RGBA", (256, 256), (50, 150, 250, 255)).save(
+              "AppDir/usr/share/icons/hicolor/256x256/apps/surelog.png", "PNG")
+          '
+
+          # Keep AppRun OUTSIDE AppDir so linuxdeploy does not copy it onto
+          # itself when --custom-apprun points into AppDir. The AppImage
+          # runtime sets $APPDIR before exec'ing this file.
+          cat > AppRun-custom << 'EOF'
+          #!/bin/bash
+          export LD_LIBRARY_PATH="$APPDIR/usr/lib:${LD_LIBRARY_PATH:-}"
+          exec "$APPDIR/usr/bin/surelog" "$@"
+          EOF
+          chmod +x AppRun-custom
+
+      - name: Download linuxdeploy
+        run: |
+          wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-${{ matrix.appimage_arch }}.AppImage"
+          chmod +x linuxdeploy-${{ matrix.appimage_arch }}.AppImage
+
+      - name: Create the AppImage
+        run: |
+          ./linuxdeploy-${{ matrix.appimage_arch }}.AppImage \
+            --appdir AppDir \
+            --executable AppDir/usr/bin/surelog \
+            --desktop-file AppDir/usr/share/applications/surelog.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/surelog.png \
+            --custom-apprun AppRun-custom \
+            --output appimage
+
+          if [ ! -f "${{ env.APPIMAGE_NAME }}" ]; then
+            for f in *.AppImage; do
+              case "$f" in
+                linuxdeploy-*.AppImage) continue ;;
+                *) mv "$f" "${{ env.APPIMAGE_NAME }}" ;;
+              esac
+            done
+          fi
+
+          ls -lh *.AppImage
+
+      - name: Verify no unwanted host dependencies remain
+        run: |
+          # Extract and prove every binary's .so deps either resolve
+          # inside AppDir or are on the documented base-system allowlist.
+          # Anything else leaking in from the host fails the build
+          # instead of silently shipping an AppImage that only works on
+          # machines with the same dev packages installed.
+          set -euo pipefail
+          chmod +x "${{ env.APPIMAGE_NAME }}"
+          ./"${{ env.APPIMAGE_NAME }}" --appimage-extract >/dev/null
+
+          export LD_LIBRARY_PATH="$PWD/squashfs-root/usr/lib:${LD_LIBRARY_PATH:-}"
+
+          ALLOWED='^(linux-vdso|ld-linux|libc\.so|libm\.so|libpthread\.so|libdl\.so|librt\.so|libresolv\.so|libnsl\.so|libutil\.so|libstdc\+\+\.so|libgcc_s\.so|libz\.so)'
+
+          # Surelog ships six binaries; audit all of them, not just the
+          # main `surelog` entry point, so a future change that pulls in
+          # libuuid or libunwind dynamically cannot slip past CI.
+          for f in squashfs-root/usr/bin/*; do
+            file "$f" | grep -q ELF || continue
+            echo "Checking $(basename "$f")..."
+            while read -r line; do
+              lib=$(basename "$(awk '{print $1}' <<<"$line")")
+              resolved=$(awk '{print $3}' <<<"$line")
+
+              if grep -q "not found" <<<"$line"; then
+                echo "  ❌ MISSING: $lib"; exit 1
+              fi
+              grep -qE "$ALLOWED" <<<"$lib" && continue
+              [ -z "$resolved" ] && continue
+
+              case "$resolved" in
+                */squashfs-root/*) echo "  ✅ $lib (bundled)" ;;
+                *) echo "  ⚠️  HOST DEP: $lib -> $resolved"; exit 1 ;;
+              esac
+            done < <(ldd "$f")
+          done
+
+          rm -rf squashfs-root
+          echo "✅ Only glibc/libfuse required from the host"
+
+      - name: Smoke test the AppImage
+        run: |
+          chmod +x "${{ env.APPIMAGE_NAME }}"
+          ./"${{ env.APPIMAGE_NAME }}" --version
+
+      - name: Compute SHA256 of the AppImage
+        id: sha
+        run: |
+          HASH=$(sha256sum "${{ env.APPIMAGE_NAME }}" | awk '{print $1}')
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          echo "SHA256: $HASH"
+
+      - name: Write checksum file
+        run: |
+          sha256sum "${{ env.APPIMAGE_NAME }}" > "${{ env.APPIMAGE_NAME }}.sha256"
+          cat "${{ env.APPIMAGE_NAME }}.sha256"
+
+      - name: Upload AppImage as artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.APPIMAGE_NAME }}
+          path: |
+            ${{ env.APPIMAGE_NAME }}
+            ${{ env.APPIMAGE_NAME }}.sha256
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: ${{ inputs.create_release }}
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: surelog-${{ env.SURELOG_VERSION }}
+          name: Surelog ${{ env.SURELOG_VERSION }}
+          overwrite_files: true
+          body: |
+            ## Surelog ${{ env.SURELOG_VERSION }} - Linux ${{ matrix.appimage_arch }} AppImage
+
+            A standalone, portable AppImage of **Surelog ${{ env.SURELOG_VERSION }}** built from the [official upstream source](https://github.com/chipsalliance/Surelog).
+
+            Surelog is a SystemVerilog 2017 Pre-processor, Parser, Elaborator, and UHDM Compiler.
+
+            ---
+
+            ### Quick start
+
+            ```bash
+            chmod +x surelog-${{ env.SURELOG_VERSION }}-${{ matrix.appimage_arch }}.AppImage
+            ./surelog-${{ env.SURELOG_VERSION }}-${{ matrix.appimage_arch }}.AppImage --help
+            ```
+
+            ### Requirements
+
+            - Linux x86_64, glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+, Fedora 36+, etc.)
+            - `libfuse2` (for running AppImages directly), or use
+              `--appimage-extract-and-run` / set `APPIMAGE_EXTRACT_AND_RUN=1`
+              if FUSE is unavailable (e.g. inside containers).
+
+            ### Verify the download
+
+            SHA256: `${{ steps.sha.outputs.hash }}`
+
+            Or use the attached checksum file:
+            
+            ```bash
+            sha256sum -c ${{ env.APPIMAGE_NAME }}.sha256
+            ```
+
+            ### Notes
+
+            Built automatically by GitHub Actions. Full build logs in the
+            **Actions** tab.
+
+            ---
+
+            *Surelog is developed by the Chips Alliance. This is an unofficial repackaging - upstream project: https://github.com/chipsalliance/Surelog*
+          files: |
+            ${{ env.APPIMAGE_NAME }}
+            ${{ env.APPIMAGE_NAME }}.sha256
+          draft: false
+          prerelease: false
+          make_latest: ${{ inputs.make_latest }}
+          fail_on_unmatched_files: true
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
