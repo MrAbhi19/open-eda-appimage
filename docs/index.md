@@ -73,6 +73,7 @@ Even packaging has its limits:
 |---|---|---|---|---|---|
 | **ABC** | Rolling | x86_64, aarch64 | [berkeley-abc/abc](https://github.com/berkeley-abc/abc) | Updated every ~10 days (rolling tag `abc-appimage`) | [ABC page →](abc.html) |
 | **Yosys** | 0.68 and newer | x86_64, aarch64 | [YosysHQ/yosys](https://github.com/YosysHQ/yosys) | Tagged per version (`yosys-v<version>`) | [Yosys page →](yosys.html) |
+| **OpenSTA** | Rolling | x86_64, aarch64 | [parallaxsw/OpenSTA](https://github.com/parallaxsw/OpenSTA) | Updated monthly (rolling tag `opensta-appimage`) | [OpenSTA page →](opensta.html) |
 
 Each tool has a dedicated page covering what the tool is, how to download
 it, and exactly how it is built and packaged: source, build flags, bundler
@@ -80,11 +81,11 @@ versions, and checks.
 
 - [ABC →](abc.html)
 - [Yosys →](yosys.html)
+- [OpenSTA →](opensta.html)
 
 ### Coming soon
 
 - **Netgen** — LVS (layout vs. schematic) checker
-- **OpenSTA** — static timing analysis
 
 Follow the [releases page](https://github.com/MrAbhi19/open-eda-appimage/releases)
 or the [Discussions](https://github.com/MrAbhi19/open-eda-appimage/discussions)
@@ -126,8 +127,23 @@ chmod +x abc-x86_64.AppImage
 sha256sum -c abc-x86_64.AppImage.sha256
 ```
 
+**OpenSTA**
+
+```sh
+# Download
+wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/opensta-appimage/opensta-x86_64.AppImage
+
+# Make executable and run
+chmod +x opensta-x86_64.AppImage
+./opensta-x86_64.AppImage -version
+
+# Verify the download
+sha256sum -c opensta-x86_64.AppImage.sha256
+```
+
 For ARM64 devices, replace `x86_64` with `aarch64` in the filenames.
-See the [Yosys](yosys.html) and [ABC](abc.html) pages for details.
+See the [Yosys](yosys.html), [ABC](abc.html) and [OpenSTA](opensta.html)
+pages for details.
 
 ---
 
@@ -139,13 +155,14 @@ Each tool has its own workflow under
 Each workflow:
 
 1. Fetches the upstream source: the official release tarball for Yosys,
-   the latest commit for ABC
+   the latest commit for ABC and OpenSTA
 2. Builds natively on Ubuntu 22.04 (x86_64) and Ubuntu 22.04 ARM (aarch64)
 3. Bundles dependencies with
    [linuxdeploy](https://github.com/linuxdeploy/linuxdeploy) and packs a
    zstd-compressed AppImage
-4. Smoke tests the AppImage (the ABC workflow also checks for broken symlinks
-   and missing shared libraries)
+4. Smoke tests the AppImage (the ABC and OpenSTA workflows also check for
+   broken symlinks and missing shared libraries, and OpenSTA additionally
+   runs a Tcl round-trip to exercise its bundled Tcl runtime)
 5. Publishes to GitHub Releases with a SHA256 checksum
 
 Yosys additionally has a
@@ -158,7 +175,7 @@ Build logs are public in the
 
 The exact build flags, dependency lists, and bundling decisions for each
 tool are documented on its dedicated page — see
-[ABC](abc.html) and [Yosys](yosys.html).
+[ABC](abc.html), [Yosys](yosys.html) and [OpenSTA](opensta.html).
 
 ---
 
