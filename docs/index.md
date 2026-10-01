@@ -74,18 +74,18 @@ Even packaging has its limits:
 | **ABC** | Rolling | x86_64, aarch64 | [berkeley-abc/abc](https://github.com/berkeley-abc/abc) | Updated every ~10 days (rolling tag `abc-appimage`) | [ABC page →](abc.html) |
 | **Yosys** | 0.68 and newer | x86_64, aarch64 | [YosysHQ/yosys](https://github.com/YosysHQ/yosys) | Tagged per version (`yosys-v<version>`) | [Yosys page →](yosys.html) |
 | **OpenSTA** | Rolling | x86_64, aarch64 | [parallaxsw/OpenSTA](https://github.com/parallaxsw/OpenSTA) | Updated monthly (rolling tag `opensta-appimage`) | [OpenSTA page →](opensta.html) |
+| **Surelog** | v1.81 and newer | x86_64, aarch64 | [chipsalliance/Surelog](https://github.com/chipsalliance/Surelog) | Tagged per version (`surelog-v<version>`) | [Surelog page →](surelog.html) |
+| **Netgen** | 1.5.323 and newer | x86_64, aarch64 | [RTimothyEdwards/netgen](https://github.com/RTimothyEdwards/netgen) | Tagged per version (`netgen-v<version>`) | [Netgen page →](netgen.html) |
 
 Each tool has a dedicated page covering what the tool is, how to download
 it, and exactly how it is built and packaged: source, build flags, bundler
 versions, and checks.
 
-- [ABC →](abc.html)
-- [Yosys →](yosys.html)
-- [OpenSTA →](opensta.html)
-
-### Coming soon
-
-- **Netgen** — LVS (layout vs. schematic) checker
+- [ABC →](abc.html) — logic synthesis and formal verification
+- [Yosys →](yosys.html) — RTL synthesis framework
+- [OpenSTA →](opensta.html) — gate-level static timing analysis
+- [Surelog →](surelog.html) — SystemVerilog 2017 parser, elaborator and UHDM compiler
+- [Netgen →](netgen.html) — LVS (layout vs. schematic) netlist comparison
 
 Follow the [releases page](https://github.com/MrAbhi19/open-eda-appimage/releases)
 or the [Discussions](https://github.com/MrAbhi19/open-eda-appimage/discussions)
@@ -141,9 +141,37 @@ chmod +x opensta-x86_64.AppImage
 sha256sum -c opensta-x86_64.AppImage.sha256
 ```
 
+**Surelog**
+
+```sh
+# Download
+wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/surelog-v1.81/surelog-v1.81-x86_64.AppImage
+
+# Make executable and run
+chmod +x surelog-v1.81-x86_64.AppImage
+./surelog-v1.81-x86_64.AppImage --version
+
+# Verify the download
+sha256sum -c surelog-v1.81-x86_64.AppImage.sha256
+```
+
+**Netgen**
+
+```sh
+# Download
+wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/netgen-v1.5.323/netgen-1.5.323-x86_64.AppImage
+
+# Make executable and run (batch mode; omit -batch for the Tk console)
+chmod +x netgen-1.5.323-x86_64.AppImage
+echo "quit" | ./netgen-1.5.323-x86_64.AppImage -batch
+
+# Verify the download
+sha256sum -c netgen-1.5.323-x86_64.AppImage.sha256
+```
+
 For ARM64 devices, replace `x86_64` with `aarch64` in the filenames.
-See the [Yosys](yosys.html), [ABC](abc.html) and [OpenSTA](opensta.html)
-pages for details.
+See the [ABC](abc.html), [Yosys](yosys.html), [OpenSTA](opensta.html),
+[Surelog](surelog.html) and [Netgen](netgen.html) pages for details.
 
 ---
 
@@ -154,15 +182,22 @@ Each tool has its own workflow under
 
 Each workflow:
 
-1. Fetches the upstream source: the official release tarball for Yosys,
-   the latest commit for ABC and OpenSTA
+1. Fetches the upstream source: the official release tarball for Yosys and
+   Netgen, the tagged release (with git submodules) for Surelog, and the
+   latest commit for ABC and OpenSTA
 2. Builds natively on Ubuntu 22.04 (x86_64) and Ubuntu 22.04 ARM (aarch64)
 3. Bundles dependencies with
-   [linuxdeploy](https://github.com/linuxdeploy/linuxdeploy) and packs a
-   zstd-compressed AppImage
-4. Smoke tests the AppImage (the ABC and OpenSTA workflows also check for
-   broken symlinks and missing shared libraries, and OpenSTA additionally
-   runs a Tcl round-trip to exercise its bundled Tcl runtime)
+   [linuxdeploy](https://github.com/linuxdeploy/linuxdeploy) and packs the
+   AppImage (zstd-compressed for Yosys, ABC and OpenSTA)
+4. Smoke tests the AppImage. Beyond that:
+   - ABC and OpenSTA also check for broken symlinks and missing shared
+     libraries, and OpenSTA additionally runs a Tcl round-trip to exercise
+     its bundled Tcl runtime.
+   - Surelog and Netgen audit the ELF binaries inside the AppImage and fail
+     the build if any shared library leaks in from the host instead of being
+     bundled (only glibc and a short base-system allowlist are permitted).
+     Netgen also checks that the bundled Tcl/Tk script libraries are present
+     and starts in batch mode to exercise them.
 5. Publishes to GitHub Releases with a SHA256 checksum
 
 Yosys additionally has a
@@ -175,7 +210,8 @@ Build logs are public in the
 
 The exact build flags, dependency lists, and bundling decisions for each
 tool are documented on its dedicated page — see
-[ABC](abc.html), [Yosys](yosys.html) and [OpenSTA](opensta.html).
+[ABC](abc.html), [Yosys](yosys.html), [OpenSTA](opensta.html),
+[Surelog](surelog.html) and [Netgen](netgen.html).
 
 ---
 
