@@ -40,7 +40,8 @@ PRs, issues, and suggestions are welcome — bug reports, distro-testing feedbac
 - **The AppImages distributed here** are built from upstream open-source projects and are governed by their respective licenses:
   - **Yosys** — ISC License, Copyright (C) 2012–2026 Claire Xenia Wolf. See [LICENSE-Yosys](LICENSE-Yosys) or the [upstream COPYING file](https://github.com/YosysHQ/yosys/blob/main/COPYING).
   - **ABC** — permissive license, Copyright (c) The Regents of the University of California. See [LICENSE-ABC](LICENSE-ABC) or the [upstream copyright.txt](https://github.com/berkeley-abc/abc/blob/master/copyright.txt).
-  - **OpenSTA** — GNU GPL v3, Copyright (c) Parallax Software, Inc. See the [upstream LICENSE](https://github.com/parallaxsw/OpenSTA/blob/master/LICENSE).
-- Each AppImage also bundles shared libraries (for example readline, Tcl, libffi, zlib, and CUDD) that are governed by their own licenses.
+  - **OpenSTA** — GNU GPL v3 (dual-licensed upstream), Copyright (c) Parallax Software, Inc. See [LICENSE-OpenSTA](LICENSE-OpenSTA) or the [upstream LICENSE](https://github.com/parallaxsw/OpenSTA/blob/master/LICENSE). The corresponding source of each build is the commit linked in its release notes.
+  - **CUDD** (bundled with OpenSTA) — BSD 3-clause, Copyright (c) 1995-2004 Regents of the University of Colorado. See [LICENSE-CUDD](LICENSE-CUDD).
+- Each AppImage also bundles shared libraries (for example readline, Tcl, libffi, and zlib) that are governed by their own licenses.
 
 Upstream projects retain all rights to their code. See each project's license for terms of use, modification, and redistribution.

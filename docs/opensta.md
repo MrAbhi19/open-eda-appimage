@@ -31,8 +31,9 @@ open-source physical design flows such as OpenROAD. Having a standalone
 produced by Yosys) without installing a full place-and-route flow.
 
 - **Upstream project:** [parallaxsw/OpenSTA](https://github.com/parallaxsw/OpenSTA)
-- **License:** GNU GPL v3 (see the
-  [upstream LICENSE](https://github.com/parallaxsw/OpenSTA/blob/master/LICENSE))
+- **License:** GNU GPL v3 (see
+  [LICENSE-OpenSTA](https://github.com/MrAbhi19/open-eda-appimage/blob/main/LICENSE-OpenSTA))
+  — copyright Parallax Software, Inc.
 
 > This is an **unofficial** repackaging. OpenSTA is developed by Parallax
 > Software, Inc. and contributors. Bugs in OpenSTA itself should be reported
@@ -55,7 +56,8 @@ opensta-<arch>.AppImage.sha256
 where `<arch>` is `x86_64` or `aarch64`. There is no version number in the
 filename. The release title and notes state the OpenSTA version (read from
 upstream's `CMakeLists.txt`) and the exact upstream commit the binary was
-built from.
+built from. That commit is also the corresponding source for the GPL (see
+[License](#license)).
 
 ### x86_64
 
@@ -340,6 +342,26 @@ sha256sum opensta-<arch>.AppImage > opensta-<arch>.AppImage.sha256
 
 ---
 
+## License
+
+OpenSTA is **dual licensed**: it is released under the **GNU GPL v3**, and
+Parallax Software separately offers commercial licenses. This project
+redistributes only the GPL v3 build.
+
+- The full GPL v3 text is in this repository as
+  [LICENSE-OpenSTA](https://github.com/MrAbhi19/open-eda-appimage/blob/main/LICENSE-OpenSTA).
+- The source used for each build is unmodified upstream source. The exact
+  commit is linked in the release notes, so the corresponding source for any
+  published binary can be obtained from there.
+- The AppImage also bundles **CUDD** (BSD 3-clause, Copyright (c) 1995-2004
+  Regents of the University of Colorado), see
+  [LICENSE-CUDD](https://github.com/MrAbhi19/open-eda-appimage/blob/main/LICENSE-CUDD),
+  plus Tcl, readline and other system libraries under their own licenses.
+- If you modify OpenSTA and redistribute it, the GPL v3 applies to your
+  changes too.
+
+---
+
 ## Build summary
 
 | Item | Value |
@@ -350,6 +372,7 @@ sha256sum opensta-<arch>.AppImage > opensta-<arch>.AppImage.sha256
 | Build type | Release |
 | Compiler | `gcc` / `g++` |
 | Runners | `ubuntu-22.04`, `ubuntu-22.04-arm` |
+| License | GPL v3 (OpenSTA), BSD (CUDD) |
 | Tcl | 8.6, bundled (library + script directory, custom AppRun sets `TCL_LIBRARY`) |
 | Bundler | linuxdeploy `continuous` |
 | AppImage compression | zstd |
