@@ -1,0 +1,350 @@
+# Unofficial OpenSTA AppImage build workflow
+# Copyright (c) 2026 Abhilash M — MIT License (see LICENSE)
+
+name: Build OpenSTA AppImage
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Rolling rebuild on the 1st of every month at 06:00 UTC.
+    - cron: '0 6 1 * *'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            appimage_arch: x86_64
+          - os: ubuntu-22.04-arm
+            appimage_arch: aarch64
+    timeout-minutes: 90
+    env:
+      APPIMAGE_NAME: "opensta-${{ matrix.appimage_arch }}.AppImage"
+
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            gawk git make cmake gcc g++ \
+            bison flex \
+            libffi-dev libfl-dev libreadline-dev \
+            tcl-dev zlib1g-dev \
+            libeigen3-dev \
+            autoconf automake libtool \
+            swig \
+            wget curl file desktop-file-utils \
+            python3-pil \
+            libfuse2
+
+      - name: Build and install CUDD
+        run: |
+          set -euo pipefail
+
+          # Discover the latest 3.x release tag (bare, e.g. "3.0.0").
+          CUDD_TAG=$(git ls-remote --tags --refs https://github.com/cuddorg/cudd.git \
+                     | awk -F/ '{print $NF}' \
+                     | grep -E '^3\.[0-9]+\.[0-9]+$' \
+                     | sort -V \
+                     | tail -n1)
+          echo "Using CUDD tag: $CUDD_TAG"
+          test -n "$CUDD_TAG"
+
+          git clone --depth 1 --branch "$CUDD_TAG" \
+            https://github.com/cuddorg/cudd.git cudd-src
+          cd cudd-src
+          autoreconf -i
+          ./configure --prefix=/usr/local --enable-shared --enable-static
+          make -j"$(nproc)"
+          sudo make install
+          sudo ldconfig
+          test -f /usr/local/include/cudd.h
+
+      - name: Clone OpenSTA source
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/parallaxsw/OpenSTA.git opensta-src
+          cd opensta-src
+          COMMIT_HASH=$(git rev-parse HEAD)
+          COMMIT_SHORT=$(git rev-parse --short HEAD)
+
+          # OpenSTA hardcodes the version in CMakeLists.txt
+          # (e.g. project(OpenSTA VERSION 3.1.0)).
+          VERSION=$(grep -E 'project\(' CMakeLists.txt 2>/dev/null \
+                    | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
+          VERSION=${VERSION:-unknown}
+
+          echo "commit_hash=$COMMIT_HASH"   >> "$GITHUB_ENV"
+          echo "commit_short=$COMMIT_SHORT" >> "$GITHUB_ENV"
+          echo "sta_version=$VERSION"       >> "$GITHUB_ENV"
+          echo "Building OpenSTA $VERSION at commit: $COMMIT_HASH"
+
+      - name: Configure OpenSTA with CMake
+        run: |
+          set -euo pipefail
+          cmake -B build opensta-src \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCUDD_DIR=/usr/local
+
+      - name: Build OpenSTA
+        run: |
+          set -euo pipefail
+          cmake --build build --config Release --parallel "$(nproc)"
+
+      - name: Install OpenSTA into AppDir
+        run: |
+          set -euo pipefail
+          cmake --install build --prefix AppDir/usr --strip
+          ls -la AppDir/usr/bin/
+
+      - name: Bundle Tcl runtime + script library
+        run: |
+          set -euo pipefail
+
+          TCLSH=$(command -v tclsh8.6 || command -v tclsh)
+          TCL_VER=$("$TCLSH" <<<'puts [info tclversion]')     # 8.6
+          TCL_PATCH=$("$TCLSH" <<<'puts [info patchlevel]')   # e.g. 8.6.12
+          echo "Bundling Tcl $TCL_PATCH from $TCLSH"
+          echo "TCL_VER=$TCL_VER" >> "$GITHUB_ENV"
+
+          # 1) Copy the EXACT libtcl the tclsh links against.
+          LIBTCL=$(ldd "$TCLSH" | awk '/libtcl/{print $3}')
+          test -n "$LIBTCL"
+          cp -av "$LIBTCL" AppDir/usr/lib/
+
+          # 2) Copy the matching script library.
+          SRC_DIR="/usr/share/tcltk/tcl${TCL_VER}"
+          test -f "$SRC_DIR/init.tcl"
+          DEST_DIR="AppDir/usr/lib/tcl${TCL_VER}"
+          mkdir -p "$DEST_DIR"
+          cp -a "$SRC_DIR/." "$DEST_DIR/"
+
+          # 3) Sanity checks.
+          echo "init.tcl requires:"
+          grep -E '^package require -exact Tcl' "$DEST_DIR/init.tcl" || true
+          echo "libtcl patchlevel:"
+          strings "$LIBTCL" | grep -m1 '^8\.6\.[0-9]\+$' || true
+
+      - name: Create custom AppRun
+        run: |
+          set -euo pipefail
+          cat > AppRun <<EOF
+          #!/bin/sh
+          HERE="\$(dirname "\$(readlink -f "\$0")")"
+          export TCL_LIBRARY="\$HERE/usr/lib/tcl${TCL_VER}"
+          export LD_LIBRARY_PATH="\$HERE/usr/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}"
+          export PATH="\$HERE/usr/bin\${PATH:+:\$PATH}"
+          exec "\$HERE/usr/bin/sta" "\$@"
+          EOF
+          chmod +x AppRun
+          echo "--- AppRun ---"
+          cat AppRun
+
+      - name: Create .desktop file and 256x256 icon
+        run: |
+          set -euo pipefail
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          cat > AppDir/usr/share/applications/opensta.desktop << 'EOF'
+          [Desktop Entry]
+          Name=OpenSTA
+          Exec=sta
+          Icon=opensta
+          Type=Application
+          Categories=Development;Electronics;
+          Terminal=true
+          Comment=OpenSTA Static Timing Analyzer
+          EOF
+          python3 -c '
+          from PIL import Image
+          img = Image.new("RGBA", (256, 256), (200, 60, 30, 255))
+          img.save("AppDir/usr/share/icons/hicolor/256x256/apps/opensta.png", "PNG")
+          print("256x256 icon created successfully")
+          '
+
+      - name: Download linuxdeploy
+        run: |
+          set -euo pipefail
+          wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${{ matrix.appimage_arch }}.AppImage"
+          chmod +x linuxdeploy-${{ matrix.appimage_arch }}.AppImage
+
+      - name: Create the AppImage
+        env:
+          ARCH: ${{ matrix.appimage_arch }}
+          OUTPUT_APPIMAGE_COMP: zstd
+          # Match by basename glob — the loader reports /lib/... on Ubuntu,
+          # not /usr/lib/..., so anchored paths won't match.
+          LINUXDEPLOY_EXCLUDE_LIBS: "*libtcl8.6.so*;*libtk8.6.so*"
+        run: |
+          set -euo pipefail
+
+          # --executable must point at the REAL ELF, not a shell wrapper.
+          # --custom-apprun uses our TCL_LIBRARY-aware AppRun.
+          ./linuxdeploy-${{ matrix.appimage_arch }}.AppImage \
+            --appdir AppDir \
+            --executable AppDir/usr/bin/sta \
+            --custom-apprun AppRun \
+            --desktop-file AppDir/usr/share/applications/opensta.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/opensta.png \
+            --output appimage
+
+          # Move linuxdeploy's own AppImage out of the way so the glob below
+          # doesn't pick it up.
+          mv linuxdeploy-${{ matrix.appimage_arch }}.AppImage /tmp/
+
+          BUILT=$(ls -1 *.AppImage | grep -v linuxdeploy | head -n1)
+          echo "linuxdeploy produced: $BUILT"
+
+          if [ "$BUILT" != "${APPIMAGE_NAME}" ]; then
+            mv -v "$BUILT" "${APPIMAGE_NAME}"
+          fi
+
+          test -f "${APPIMAGE_NAME}" || { echo "No AppImage produced"; exit 1; }
+          ls -lh *.AppImage
+
+      - name: Verify no broken symlinks and all libs resolve
+        run: |
+          set -euo pipefail
+          ./"${APPIMAGE_NAME}" --appimage-extract >/dev/null
+
+          echo "== Symlinks in usr/lib =="
+          find squashfs-root/usr/lib -maxdepth 1 -type l -printf '%p -> %l\n' || true
+
+          echo "== Broken symlinks =="
+          if find squashfs-root/usr/lib -xtype l | grep -q .; then
+            echo "!! Found broken symlinks:"
+            find squashfs-root/usr/lib -xtype l -printf '%p -> %l\n'
+            exit 1
+          fi
+          echo "No broken symlinks."
+
+          echo "== ldd on the binary =="
+          if ldd squashfs-root/usr/bin/sta | grep -q "not found"; then
+            echo "!! Missing shared libs:"
+            ldd squashfs-root/usr/bin/sta | grep "not found"
+            exit 1
+          fi
+          echo "All shared libs resolved."
+
+      - name: Smoke test the AppImage
+        run: |
+          set -euo pipefail
+          chmod +x "${APPIMAGE_NAME}"
+
+          echo "== -version =="
+          VERSION_OUT=$(./"${APPIMAGE_NAME}" -version)
+          echo "$VERSION_OUT"
+          test -n "$VERSION_OUT"
+
+          # Exercise the bundled Tcl runtime end-to-end.
+          echo "== Tcl round-trip =="
+          echo 'puts "TCL_SMOKE_OK"' | ./"${APPIMAGE_NAME}" 2>&1 | tee smoke.log
+          grep -q "TCL_SMOKE_OK" smoke.log
+          echo "Smoke test passed."
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
+      - name: Compute SHA256 of the AppImage
+        id: sha
+        run: |
+          set -euo pipefail
+          HASH=$(sha256sum "${APPIMAGE_NAME}" | awk '{print $1}')
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          echo "SHA256: $HASH"
+
+      - name: Write checksum file
+        run: |
+          set -euo pipefail
+          sha256sum "${APPIMAGE_NAME}" > "${APPIMAGE_NAME}.sha256"
+          cat "${APPIMAGE_NAME}.sha256"
+
+      - name: Upload AppImage as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APPIMAGE_NAME }}
+          path: |
+            ${{ env.APPIMAGE_NAME }}
+            ${{ env.APPIMAGE_NAME }}.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: opensta-appimage
+          name: OpenSTA AppImage (Rolling)
+          overwrite_files: true
+          body: |
+            ## OpenSTA ${{ env.sta_version }} — Linux AppImage (x86_64 + aarch64)
+
+            A standalone, portable AppImage of **OpenSTA** built from source at commit
+            [`${{ env.commit_short }}`](https://github.com/parallaxsw/OpenSTA/commit/${{ env.commit_hash }}).
+
+            ---
+
+            ### Build Info
+            - **Upstream version (source):** `${{ env.sta_version }}`
+            - **Source commit:** `${{ env.commit_hash }}`
+            - **Architectures:** `x86_64`, `aarch64`
+            - **Built:** ${{ steps.date.outputs.date }}
+            - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            ---
+
+            ### Quick start
+            ```
+            chmod +x opensta-x86_64.AppImage
+            ./opensta-x86_64.AppImage -version
+            ```
+            ### Requirements
+            
+            - Linux **x86_64** or **aarch64**
+            - glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+, Fedora 36+, etc.)
+            - Tcl 8.6 runtime is bundled inside the AppImage
+            - FUSE 2 is **optional** — needed only for direct execution. If it's
+              missing (`libfuse2` on Debian/Ubuntu, `fuse2` on Fedora), run with
+              `--appimage-extract-and-run` which needs no FUSE at all.
+            
+            ---
+            
+            ### Verify the download
+            
+            Checksum files are attached alongside each AppImage:
+
+            ```
+            sha256sum -c opensta-x86_64.AppImage.sha256
+            sha256sum -c opensta-aarch64.AppImage.sha256
+            ```
+            
+            ---
+
+            ### Notes
+            
+            Built automatically by GitHub Actions from the latest upstream commit on
+            the scheduled run (1st of each month at 06:00 UTC) or manually via
+            `workflow_dispatch`. This release uses a rolling tag (`opensta-appimage`);
+            each run overwrites the previous asset. Full logs in the **Actions** tab.
+            ---
+            *OpenSTA is developed by Parallax Software, Inc. and contributors. This is an unofficial repackaging - upstream project: https://github.com/parallaxsw/OpenSTA*
+          files: |
+            ${{ env.APPIMAGE_NAME }}
+            ${{ env.APPIMAGE_NAME }}.sha256
+          draft: false
+          prerelease: false
+          make_latest: false
+          fail_on_unmatched_files: true
+          generate_release_notes: false
+          token: ${{ secrets.GITHUB_TOKEN }}
