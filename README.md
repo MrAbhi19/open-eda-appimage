@@ -19,6 +19,12 @@ Grab the AppImages from the [**Releases page**](../../releases).
 
 ---
 
+## Community Partners
+
+Seeking community partners - open a thread on the [Discussions page](../../discussions)
+
+---
+
 ## Contributing
 
 PRs, issues, and suggestions are welcome — bug reports, distro-testing feedback, or ideas for new tool workflows. We encourage using the [Discussions page](../../discussions) for feedback and other issues. Pull Requests (PRs) are highly encouraged!
