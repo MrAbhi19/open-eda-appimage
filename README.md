@@ -14,8 +14,8 @@ No installation. No dependencies. No container. Download one file, `chmod +x`, r
 
 **Tools:** [Yosys](https://github.com/YosysHQ/yosys) (tagged per version), [ABC](https://github.com/berkeley-abc/abc) (rolling, rebuilt every ~10 days), [OpenSTA](https://github.com/parallaxsw/OpenSTA) (rolling, rebuilt monthly), [Surelog](https://github.com/chipsalliance/Surelog) (tagged per version) and [Netgen](https://github.com/RTimothyEdwards/netgen) (tagged per version) — each for Linux x86_64 and aarch64.
 
-**Downloads, requirements, checksums, and full build details** for Yosys, ABC and OpenSTA live on the documentation site: **<https://mrabhi19.github.io/open-eda-appimage/>**
-Grab the AppImages (including Surelog and Netgen) from the [**Releases page**](../../releases).
+**Downloads, requirements, checksums, and full build details** for Yosys, ABC, OpenSTA, Surelog and Netgen live on the documentation site: **<https://mrabhi19.github.io/open-eda-appimage/>**
+Grab the AppImages from the [**Releases page**](../../releases).
 
 ---
 

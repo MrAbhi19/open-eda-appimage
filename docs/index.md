@@ -86,6 +86,7 @@ versions, and checks.
 - [OpenSTA →](opensta.html) — gate-level static timing analysis
 - [Surelog →](surelog.html) — SystemVerilog 2017 parser, elaborator and UHDM compiler
 - [Netgen →](netgen.html) — LVS (layout vs. schematic) netlist comparison
+- [Symlinks and AppImage Management →](symlink.html) — *optional:* keep every AppImage in `~/AppImages` and expose it on your `PATH` via `~/.local/bin` when you want to call tools by name
 
 Follow the [releases page](https://github.com/MrAbhi19/open-eda-appimage/releases)
 or the [Discussions](https://github.com/MrAbhi19/open-eda-appimage/discussions)
@@ -172,6 +173,46 @@ sha256sum -c netgen-1.5.323-x86_64.AppImage.sha256
 For ARM64 devices, replace `x86_64` with `aarch64` in the filenames.
 See the [ABC](abc.html), [Yosys](yosys.html), [OpenSTA](opensta.html),
 [Surelog](surelog.html) and [Netgen](netgen.html) pages for details.
+
+### If you want to call the tools by name (optional)
+
+Running the AppImage directly — `./yosys-0.69-x86_64.AppImage …` — is
+the whole point of this project, and it's enough on its own. You do
+**not** need to install anything, and you do **not** need symlinks.
+
+But many EDA flows and scripts don't know about AppImages. They invoke
+tools by bare name: a Makefile that runs `yosys …`, a Tcl flow that
+shells out to `abc`, an OpenROAD script that calls `sta`, a CI job that
+expects `surelog` on `PATH`. In those cases you have two options:
+
+- **Point the flow at the AppImage explicitly** — edit the script or
+  set a variable so it runs `~/AppImages/yosys-0.69-x86_64.AppImage`
+  instead of `yosys`. Works, but it means touching every script.
+- **Symlink the AppImage onto your `PATH`** — drop a link in
+  `~/.local/bin/yosys` once, and every script, Makefile and flow that
+  says `yosys` just works, unmodified.
+
+The second option is the reason the
+[Symlinks and AppImage Management](symlink.html) page exists. It is a
+convenience, not a requirement — use it if you want the "call by name"
+experience, skip it if you're happy invoking the AppImage directly.
+
+Sketch of the setup, if you want it:
+
+```sh
+# Put AppImages in one place, symlink them into ~/.local/bin
+mkdir -p ~/AppImages ~/.local/bin
+mv yosys-0.69-x86_64.AppImage ~/AppImages/
+ln -s ~/AppImages/yosys-0.69-x86_64.AppImage ~/.local/bin/yosys
+
+# Now flows that say "yosys" work as-is
+yosys --version
+```
+
+The full walkthrough — including a Yosys end-to-end demo, what happens
+to a symlink when the AppImage is upgraded or deleted, and how to
+remove symlinks cleanly — is on the
+[Symlinks and AppImage Management](symlink.html) page.
 
 ---
 
