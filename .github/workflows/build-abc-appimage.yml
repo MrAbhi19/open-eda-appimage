@@ -92,10 +92,7 @@ jobs:
           '
 
       - name: Download linuxdeploy
-        run: |
-          set -euo pipefail
-          wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${{ matrix.appimage_arch }}.AppImage"
-          chmod +x linuxdeploy-${{ matrix.appimage_arch }}.AppImage
+        run: bash Scripts/linuxdeploy-download.sh ${{ matrix.appimage_arch }}
 
       - name: Create the AppImage
         run: |
@@ -155,19 +152,9 @@ jobs:
         id: date
         run: echo "date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
 
-      - name: Compute SHA256 of the AppImage
+      - name: Compute SHA256 and write checksum file
         id: sha
-        run: |
-          set -euo pipefail
-          HASH=$(sha256sum "${{ env.APPIMAGE_NAME }}" | awk '{print $1}')
-          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
-          echo "SHA256: $HASH"
-
-      - name: Write checksum file
-        run: |
-          set -euo pipefail
-          sha256sum "${{ env.APPIMAGE_NAME }}" > "${{ env.APPIMAGE_NAME }}.sha256"
-          cat "${{ env.APPIMAGE_NAME }}.sha256"
+        run: bash Scripts/appimage-checksum.sh "${{ env.APPIMAGE_NAME }}"
 
       - name: Upload AppImage as artifact
         uses: actions/upload-artifact@v7
