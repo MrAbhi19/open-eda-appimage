@@ -32,13 +32,13 @@ produced by Yosys) without installing a full place-and-route flow.
 
 - **Upstream project:** [parallaxsw/OpenSTA](https://github.com/parallaxsw/OpenSTA)
 - **License:** GNU GPL v3 (see
-  [LICENSE-OpenSTA](https://github.com/MrAbhi19/open-eda-appimage/blob/main/LICENSE-OpenSTA))
+  [LICENSE-OpenSTA](https://github.com/opensiliconhub/open-eda-appimage/blob/main/LICENSE-OpenSTA))
   — copyright Parallax Software, Inc.
 
 > This is an **unofficial** repackaging. OpenSTA is developed by Parallax
 > Software, Inc. and contributors. Bugs in OpenSTA itself should be reported
 > upstream; packaging problems belong in this repository's
-> [issue tracker](https://github.com/MrAbhi19/open-eda-appimage/issues).
+> [issue tracker](https://github.com/opensiliconhub/open-eda-appimage/issues).
 
 ---
 
@@ -62,7 +62,7 @@ built from. That commit is also the corresponding source for the GPL (see
 ### x86_64
 
 ```sh
-wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/opensta-appimage/opensta-x86_64.AppImage
+wget https://github.com/opensiliconhub/open-eda-appimage/releases/download/opensta-appimage/opensta-x86_64.AppImage
 chmod +x opensta-x86_64.AppImage
 ./opensta-x86_64.AppImage -version
 ```
@@ -70,7 +70,7 @@ chmod +x opensta-x86_64.AppImage
 ### aarch64 (ARM64)
 
 ```sh
-wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/opensta-appimage/opensta-aarch64.AppImage
+wget https://github.com/opensiliconhub/open-eda-appimage/releases/download/opensta-appimage/opensta-aarch64.AppImage
 chmod +x opensta-aarch64.AppImage
 ./opensta-aarch64.AppImage -version
 ```
@@ -102,7 +102,7 @@ at the same time.
 ## How it is built
 
 Everything happens in the
-[`build-opensta-appimage.yml`](https://github.com/MrAbhi19/open-eda-appimage/blob/main/.github/workflows/build-opensta-appimage.yml)
+[`build-opensta-appimage.yml`](https://github.com/opensiliconhub/open-eda-appimage/blob/main/.github/workflows/build-opensta-appimage.yml)
 workflow on GitHub-hosted runners. No step is performed by hand.
 
 ### Triggers
@@ -349,13 +349,13 @@ Parallax Software separately offers commercial licenses. This project
 redistributes only the GPL v3 build.
 
 - The full GPL v3 text is in this repository as
-  [LICENSE-OpenSTA](https://github.com/MrAbhi19/open-eda-appimage/blob/main/LICENSE-OpenSTA).
+  [LICENSE-OpenSTA](https://github.com/opensiliconhub/open-eda-appimage/blob/main/LICENSE-OpenSTA).
 - The source used for each build is unmodified upstream source. The exact
   commit is linked in the release notes, so the corresponding source for any
   published binary can be obtained from there.
 - The AppImage also bundles **CUDD** (BSD 3-clause, Copyright (c) 1995-2004
   Regents of the University of Colorado), see
-  [LICENSE-CUDD](https://github.com/MrAbhi19/open-eda-appimage/blob/main/LICENSE-CUDD),
+  [LICENSE-CUDD](https://github.com/opensiliconhub/open-eda-appimage/blob/main/LICENSE-CUDD),
   plus Tcl, readline and other system libraries under their own licenses.
 - If you modify OpenSTA and redistribute it, the GPL v3 applies to your
   changes too.

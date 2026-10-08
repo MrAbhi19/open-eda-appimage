@@ -33,12 +33,12 @@ own without installing Tcl/Tk, X11 development packages or a full tool suite.
 - **Upstream project:** [RTimothyEdwards/netgen](https://github.com/RTimothyEdwards/netgen)
 - **Upstream downloads:** [opencircuitdesign.com/netgen](http://opencircuitdesign.com/netgen/)
 - **License:** GNU GPL v1 (see
-  [LICENSE-Netgen](https://github.com/MrAbhi19/open-eda-appimage/blob/main/LICENSE-Netgen))
+  [LICENSE-Netgen](https://github.com/opensiliconhub/open-eda-appimage/blob/main/LICENSE-Netgen))
 
 > This is an **unofficial** repackaging. Netgen is developed by Tim Edwards.
 > Bugs in Netgen itself should be reported upstream; packaging problems belong
 > in this repository's
-> [issue tracker](https://github.com/MrAbhi19/open-eda-appimage/issues).
+> [issue tracker](https://github.com/opensiliconhub/open-eda-appimage/issues).
 
 ---
 
@@ -57,7 +57,7 @@ where `<arch>` is `x86_64` or `aarch64`.
 ### x86_64
 
 ```sh
-wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/netgen-v1.5.323/netgen-1.5.323-x86_64.AppImage
+wget https://github.com/opensiliconhub/open-eda-appimage/releases/download/netgen-v1.5.323/netgen-1.5.323-x86_64.AppImage
 chmod +x netgen-1.5.323-x86_64.AppImage
 echo "quit" | ./netgen-1.5.323-x86_64.AppImage -batch
 ```
@@ -65,14 +65,14 @@ echo "quit" | ./netgen-1.5.323-x86_64.AppImage -batch
 ### aarch64 (ARM64)
 
 ```sh
-wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/netgen-v1.5.323/netgen-1.5.323-aarch64.AppImage
+wget https://github.com/opensiliconhub/open-eda-appimage/releases/download/netgen-v1.5.323/netgen-1.5.323-aarch64.AppImage
 chmod +x netgen-1.5.323-aarch64.AppImage
 echo "quit" | ./netgen-1.5.323-aarch64.AppImage -batch
 ```
 
 To get another version, replace `1.5.323` (in both the tag and the filename)
 with the version you want. All versions that have been published are listed on
-the [releases page](https://github.com/MrAbhi19/open-eda-appimage/releases).
+the [releases page](https://github.com/opensiliconhub/open-eda-appimage/releases).
 
 ### Running Netgen
 
@@ -120,7 +120,7 @@ The SHA256 is also printed in each release's notes.
 ## How it is built
 
 Everything happens in the
-[`build-netgen-appimage.yml`](https://github.com/MrAbhi19/open-eda-appimage/blob/main/.github/workflows/build-netgen-appimage.yml)
+[`build-netgen-appimage.yml`](https://github.com/opensiliconhub/open-eda-appimage/blob/main/.github/workflows/build-netgen-appimage.yml)
 workflow on GitHub-hosted runners. No step is performed by hand.
 
 ### Trigger and inputs
@@ -356,7 +356,7 @@ Netgen is released under the **GNU General Public License, version 1**
 (February 1989).
 
 - The full license text is in this repository as
-  [LICENSE-Netgen](https://github.com/MrAbhi19/open-eda-appimage/blob/main/LICENSE-Netgen).
+  [LICENSE-Netgen](https://github.com/opensiliconhub/open-eda-appimage/blob/main/LICENSE-Netgen).
 - The source used for each build is the unmodified upstream release tarball for
   that version, so the corresponding source for any published binary can be
   obtained from the upstream download link above.
