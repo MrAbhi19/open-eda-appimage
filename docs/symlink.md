@@ -85,8 +85,8 @@ Example with **Yosys 0.69**:
 ```sh
 cd ~/AppImages
 
-wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-x86_64.AppImage
-wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-x86_64.AppImage.sha256
+wget https://github.com/opensiliconhub/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-x86_64.AppImage
+wget https://github.com/opensiliconhub/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-x86_64.AppImage.sha256
 
 chmod +x yosys-0.69-x86_64.AppImage
 sha256sum -c yosys-0.69-x86_64.AppImage.sha256
@@ -137,8 +137,8 @@ mkdir -p ~/AppImages ~/.local/bin
 
 # 2. Move into it and download the AppImage + checksum
 cd ~/AppImages
-wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-x86_64.AppImage
-wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-x86_64.AppImage.sha256
+wget https://github.com/opensiliconhub/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-x86_64.AppImage
+wget https://github.com/opensiliconhub/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-x86_64.AppImage.sha256
 
 # 3. Make it executable and verify the checksum
 chmod +x yosys-0.69-x86_64.AppImage
@@ -187,8 +187,8 @@ Say Yosys 0.70 is released. You **replace the target file**:
 cd ~/AppImages
 
 # Download the new release (same base name, new version number)
-wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/yosys-v0.70/yosys-0.70-x86_64.AppImage
-wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/yosys-v0.70/yosys-0.70-x86_64.AppImage.sha256
+wget https://github.com/opensiliconhub/open-eda-appimage/releases/download/yosys-v0.70/yosys-0.70-x86_64.AppImage
+wget https://github.com/opensiliconhub/open-eda-appimage/releases/download/yosys-v0.70/yosys-0.70-x86_64.AppImage.sha256
 chmod +x yosys-0.70-x86_64.AppImage
 sha256sum -c yosys-0.70-x86_64.AppImage.sha256
 
@@ -235,8 +235,8 @@ keeps working with **zero changes** — it points at the path
 
 ```sh
 cd ~/AppImages
-wget -O abc-x86_64.AppImage https://github.com/MrAbhi19/open-eda-appimage/releases/download/abc-appimage/abc-x86_64.AppImage
-wget -O abc-x86_64.AppImage.sha256 https://github.com/MrAbhi19/open-eda-appimage/releases/download/abc-appimage/abc-x86_64.AppImage.sha256
+wget -O abc-x86_64.AppImage https://github.com/opensiliconhub/open-eda-appimage/releases/download/abc-appimage/abc-x86_64.AppImage
+wget -O abc-x86_64.AppImage.sha256 https://github.com/opensiliconhub/open-eda-appimage/releases/download/abc-appimage/abc-x86_64.AppImage.sha256
 chmod +x abc-x86_64.AppImage
 sha256sum -c abc-x86_64.AppImage.sha256
 ```

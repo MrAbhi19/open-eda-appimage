@@ -30,12 +30,12 @@ tools.
 
 - **Upstream project:** [YosysHQ/yosys](https://github.com/YosysHQ/yosys)
 - **Upstream releases:** [github.com/YosysHQ/yosys/releases](https://github.com/YosysHQ/yosys/releases)
-- **License:** ISC (see [LICENSE-Yosys](https://github.com/MrAbhi19/open-eda-appimage/blob/main/LICENSE-Yosys))
+- **License:** ISC (see [LICENSE-Yosys](https://github.com/opensiliconhub/open-eda-appimage/blob/main/LICENSE-Yosys))
 
 > This is an **unofficial** repackaging. Yosys is developed by YosysHQ and its
 > contributors. Bugs in Yosys itself should be reported upstream; packaging
 > problems belong in this repository's
-> [issue tracker](https://github.com/MrAbhi19/open-eda-appimage/issues).
+> [issue tracker](https://github.com/opensiliconhub/open-eda-appimage/issues).
 
 ---
 
@@ -54,7 +54,7 @@ where `<arch>` is `x86_64` or `aarch64`.
 ### x86_64
 
 ```sh
-wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-x86_64.AppImage
+wget https://github.com/opensiliconhub/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-x86_64.AppImage
 chmod +x yosys-0.69-x86_64.AppImage
 ./yosys-0.69-x86_64.AppImage --version
 ```
@@ -62,14 +62,14 @@ chmod +x yosys-0.69-x86_64.AppImage
 ### aarch64 (ARM64)
 
 ```sh
-wget https://github.com/MrAbhi19/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-aarch64.AppImage
+wget https://github.com/opensiliconhub/open-eda-appimage/releases/download/yosys-v0.69/yosys-0.69-aarch64.AppImage
 chmod +x yosys-0.69-aarch64.AppImage
 ./yosys-0.69-aarch64.AppImage --version
 ```
 
 To get another version, replace `0.69` (in both the tag and the filename)
 with the version you want. All versions are listed on the
-[releases page](https://github.com/MrAbhi19/open-eda-appimage/releases).
+[releases page](https://github.com/opensiliconhub/open-eda-appimage/releases).
 
 ### Verify the download
 
@@ -102,7 +102,7 @@ The SHA256 is also printed in each release's notes.
 ## How it is built
 
 Everything happens in the
-[`build-yosys-appimage.yml`](https://github.com/MrAbhi19/open-eda-appimage/blob/main/.github/workflows/build-yosys-appimage.yml)
+[`build-yosys-appimage.yml`](https://github.com/opensiliconhub/open-eda-appimage/blob/main/.github/workflows/build-yosys-appimage.yml)
 workflow on GitHub-hosted runners. No step is performed by hand.
 
 ### Trigger and inputs
@@ -262,7 +262,7 @@ sha256sum yosys-<version>-<arch>.AppImage > yosys-<version>-<arch>.AppImage.sha2
 ### Testing
 
 A separate workflow,
-[`test-yosys-appimage.yml`](https://github.com/MrAbhi19/open-eda-appimage/blob/main/.github/workflows/test-yosys-appimage.yml),
+[`test-yosys-appimage.yml`](https://github.com/opensiliconhub/open-eda-appimage/blob/main/.github/workflows/test-yosys-appimage.yml),
 downloads the **published** AppImage on clean `ubuntu-22.04` (x86_64) and
 `ubuntu-22.04-arm` (aarch64) runners. It fetches the
 [picorv32](https://github.com/YosysHQ/picorv32) RISC-V core and runs:
