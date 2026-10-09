@@ -72,10 +72,10 @@ Even packaging has its limits:
 | Tool | Versions | Architectures | Source | Release channel | Details |
 |---|---|---|---|---|---|
 | **ABC** | Rolling | x86_64, aarch64 | [berkeley-abc/abc](https://github.com/berkeley-abc/abc) | Updated every ~10 days (rolling tag `abc-appimage`) | [ABC page →](abc.html) |
-| **Yosys** | 0.68 and newer | x86_64, aarch64 | [YosysHQ/yosys](https://github.com/YosysHQ/yosys) | Tagged per version (`yosys-v<version>`) | [Yosys page →](yosys.html) |
+| **Yosys** | 0.68 and 0.69 | x86_64, aarch64 | [YosysHQ/yosys](https://github.com/YosysHQ/yosys) | Tagged per version (`yosys-v<version>`) | [Yosys page →](yosys.html) |
 | **OpenSTA** | Rolling | x86_64, aarch64 | [parallaxsw/OpenSTA](https://github.com/parallaxsw/OpenSTA) | Updated monthly (rolling tag `opensta-appimage`) | [OpenSTA page →](opensta.html) |
-| **Surelog** | v1.81 and newer | x86_64, aarch64 | [chipsalliance/Surelog](https://github.com/chipsalliance/Surelog) | Tagged per version (`surelog-v<version>`) | [Surelog page →](surelog.html) |
-| **Netgen** | 1.5.323 and newer | x86_64, aarch64 | [RTimothyEdwards/netgen](https://github.com/RTimothyEdwards/netgen) | Tagged per version (`netgen-v<version>`) | [Netgen page →](netgen.html) |
+| **Surelog** | v1.81 to v1.87 | x86_64, aarch64 | [chipsalliance/Surelog](https://github.com/chipsalliance/Surelog) | Tagged per version (`surelog-v<version>`) | [Surelog page →](surelog.html) |
+| **Netgen** | 1.5.318 to 1.5.324 | x86_64, aarch64 | [RTimothyEdwards/netgen](https://github.com/RTimothyEdwards/netgen) | Tagged per version (`netgen-v<version>`) | [Netgen page →](netgen.html) |
 
 Each tool has a dedicated page covering what the tool is, how to download
 it, and exactly how it is built and packaged: source, build flags, bundler

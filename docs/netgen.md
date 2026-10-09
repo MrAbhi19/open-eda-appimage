@@ -30,6 +30,10 @@ open-source analog and digital design flows built around Magic, Xschem and the
 open PDKs. Having a standalone `netgen` binary is handy for running LVS on its
 own without installing Tcl/Tk, X11 development packages or a full tool suite.
 
+## News
+
+The last 2 commits changed the Netgen build flow to support more Linux distros by building the AppImages inside a **Rocky Linux 8** container. Netgen versions from 1.5.324 to 1.5.320 were rebuilt after those commits. Because of this, the glibc requirements are not the same (they are now lower) for Netgen compared to other tools.
+
 - **Upstream project:** [RTimothyEdwards/netgen](https://github.com/RTimothyEdwards/netgen)
 - **Upstream downloads:** [opencircuitdesign.com/netgen](http://opencircuitdesign.com/netgen/)
 - **License:** GNU GPL v1 (see
@@ -108,7 +112,7 @@ The SHA256 is also printed in each release's notes.
 ### Requirements
 
 - Linux x86_64 or aarch64
-- glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+, Fedora 36+, or equivalent)
+- glibc 2.28 or newer (Debian 10+, Ubuntu 20.04+, Fedora 29+, RHEL/Rocky/AlmaLinux 8+, openSUSE Leap 15.3+, etc.)
 - **Tcl/Tk 8.x, zlib and the required X11 libraries are bundled** inside the
   AppImage; you don't need Tcl/Tk installed
 - An X11 display for the interactive console (not needed for `-batch`)
@@ -135,15 +139,15 @@ The workflow is started manually (`workflow_dispatch`) with these inputs:
 
 ### Build matrix
 
-Each architecture is built **natively** (no cross-compilation, no emulation):
+Each architecture is built **natively** (no cross-compilation, no emulation) but runs inside a **Rocky Linux 8 container**:
 
-| Architecture | Runner |
-|---|---|
-| x86_64 | `ubuntu-22.04` |
-| aarch64 | `ubuntu-22.04-arm` |
+| Architecture | Runner | Container |
+|---|---|---|
+| x86_64 | `ubuntu-22.04` | `rockylinux:8` |
+| aarch64 | `ubuntu-22.04-arm` | `rockylinux:8` |
 
 `fail-fast` is disabled, so one architecture failing doesn't cancel the other.
-Ubuntu 22.04 is used deliberately: it ships glibc 2.35, which sets the
+Rocky Linux 8 is used deliberately: it ships glibc 2.28, which sets the
 minimum glibc for the resulting AppImage. The job timeout is 30 minutes.
 
 ### Step by step
@@ -151,16 +155,19 @@ minimum glibc for the resulting AppImage. The job timeout is 30 minutes.
 **1. Install build dependencies**
 
 ```sh
-sudo apt-get update
-sudo apt-get install -y \
-  build-essential autoconf automake m4 libtool \
-  tcl-dev tk-dev libx11-dev libxext-dev libxpm-dev libxt-dev \
-  wget curl file desktop-file-utils python3-pil
+dnf install -y \
+  gcc gcc-c++ make \
+  autoconf automake m4 libtool \
+  tcl-devel tk-devel \
+  libX11-devel libXext-devel libXpm-devel libXt-devel \
+  wget curl file desktop-file-utils \
+  python3 python3-pillow \
+  tzdata
 ```
 
-Notable packages: `tcl-dev` and `tk-dev` provide the Tcl/Tk interpreter that
-Netgen embeds, and the `libx*-dev` packages are the X11 libraries Tk needs for
-its GUI. `python3-pil` is used only to generate the placeholder icon; `file`
+Notable packages: `tcl-devel` and `tk-devel` provide the Tcl/Tk interpreter that
+Netgen embeds, and the `libX*-devel` packages are the X11 libraries Tk needs for
+its GUI. `python3-pillow` is used only to generate the placeholder icon; `file`
 and `desktop-file-utils` are used by linuxdeploy.
 
 **2. Download the official source tarball**
@@ -373,12 +380,12 @@ Netgen is released under the **GNU General Public License, version 1**
 | Source | Official `netgen-<version>.tgz` tarball from opencircuitdesign.com |
 | Build system | Autotools (`./configure --prefix=/usr`, `make`) |
 | Compiler | `gcc` / `g++` |
-| Runners | `ubuntu-22.04`, `ubuntu-22.04-arm` |
+| Container | `rockylinux:8` (on `ubuntu-22.04` / `ubuntu-22.04-arm` runners) |
 | License | GPL v1 |
 | Tcl/Tk | Bundled (libraries + script directories, wrapper sets `TCL_LIBRARY` and `TK_LIBRARY`) |
 | X11 libraries | `libX11`, `libXext`, `libXpm`, `libXt`, bundled |
 | Bundler | linuxdeploy `1-alpha-20251107-1` |
 | Extra checks | Host-dependency audit of `netgenexec` and `tclnetgen.so`, Tcl/Tk script-library check |
-| Minimum glibc | 2.35 |
+| Minimum glibc | 2.28 |
 | Release tag | `netgen-v<version>` |
 | Artifacts | `netgen-<version>-<arch>.AppImage` + `.sha256` |
