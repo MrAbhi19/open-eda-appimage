@@ -14,7 +14,7 @@ body:
     attributes:
       label: Tool name
       description: Name of the EDA tool.
-      placeholder: ""
+      placeholder: "e.g. ngspice, verilator"
     validations:
       required: true
 
@@ -23,7 +23,6 @@ body:
     attributes:
       label: Upstream repository
       description: Link to the official source repository.
-      placeholder: ""
     validations:
       required: true
 
