@@ -60,6 +60,7 @@ Even packaging has its limits:
 
 - **glibc 2.35 or newer** — Ubuntu 22.04+, Debian 12+, Fedora 36+.
   We are actively working on lowering this.
+  - *Netgen has a lower floor (glibc 2.28+); see the [Netgen page](netgen.html) for details.*
 - **FUSE 2** — needed only for direct execution. Most distros ship it;
   if yours doesn't, install `libfuse2`/`fuse2`, or run with
   `--appimage-extract-and-run` and skip FUSE entirely.
@@ -223,23 +224,26 @@ Each tool has its own workflow under
 
 Each workflow:
 
-1. Fetches the upstream source: the official release tarball for Yosys and
-   Netgen, the tagged release (with git submodules) for Surelog, and the
-   latest commit for ABC and OpenSTA
-2. Builds natively on Ubuntu 22.04 (x86_64) and Ubuntu 22.04 ARM (aarch64)
-3. Bundles dependencies with
+1. **Fetches the upstream source:**
+   - **Yosys** & **Netgen**: official release tarballs
+   - **Surelog**: tagged release with git submodules
+   - **ABC** & **OpenSTA**: latest upstream commit (rolling)
+
+2. **Builds natively** on Ubuntu 22.04 (x86_64) and Ubuntu 22.04 ARM (aarch64)
+   - No cross-compilation or emulation
+   - glibc 2.35 floor set by using Ubuntu 22.04 as the build environment
+
+3. **Bundles dependencies** with
    [linuxdeploy](https://github.com/linuxdeploy/linuxdeploy) and packs the
-   AppImage (zstd-compressed for Yosys, ABC and OpenSTA)
-4. Smoke tests the AppImage. Beyond that:
-   - ABC and OpenSTA also check for broken symlinks and missing shared
-     libraries, and OpenSTA additionally runs a Tcl round-trip to exercise
-     its bundled Tcl runtime.
-   - Surelog and Netgen audit the ELF binaries inside the AppImage and fail
-     the build if any shared library leaks in from the host instead of being
-     bundled (only glibc and a short base-system allowlist are permitted).
-     Netgen also checks that the bundled Tcl/Tk script libraries are present
-     and starts in batch mode to exercise them.
-5. Publishes to GitHub Releases with a SHA256 checksum
+   AppImage (zstd-compressed for most tools)
+
+4. **Smoke tests** the AppImage:
+   - Basic version check for all tools
+   - ABC and OpenSTA: check for broken symlinks and missing shared libraries
+   - Surelog and Netgen: audit ELF binaries to ensure no host libs leak in (only glibc permitted)
+   - Netgen: verify bundled Tcl/Tk script libraries and test batch mode execution
+
+5. **Publishes to GitHub Releases** with a SHA256 checksum file
 
 Yosys additionally has a
 [test workflow](https://github.com/opensiliconhub/open-eda-appimage/blob/main/.github/workflows/test-yosys-appimage.yml)
@@ -253,6 +257,65 @@ The exact build flags, dependency lists, and bundling decisions for each
 tool are documented on its dedicated page — see
 [ABC](abc.html), [Yosys](yosys.html), [OpenSTA](opensta.html),
 [Surelog](surelog.html) and [Netgen](netgen.html).
+
+---
+
+## Troubleshooting
+
+### AppImage fails to run
+
+**"No such file or directory"** — FUSE 2 is likely missing. Install it:
+
+```bash
+sudo apt install libfuse2     # Ubuntu/Debian
+sudo dnf install fuse2        # Fedora
+sudo pacman -S fuse2          # Arch
+```
+
+Or run without FUSE:
+
+```bash
+./your-appimage.AppImage --appimage-extract-and-run --version
+```
+
+### Checksum verification fails
+
+Make sure the `.sha256` file is in the same directory as the AppImage and run:
+
+```bash
+sha256sum -c your-appimage.AppImage.sha256
+```
+
+Expected output: `your-appimage.AppImage: OK`
+
+### "GLIBC_X.XX not found" or symbol resolution errors
+
+Your system's glibc is too old. These AppImages require glibc 2.35+ (Ubuntu 22.04+, Debian 12+, Fedora 36+).
+
+Check your glibc version:
+
+```bash
+ldd --version | head -n 1
+```
+
+If it's older than 2.35, upgrade your distribution or build the tools from source.
+
+### Netgen starts but Tcl/Tk console won't open
+
+Use batch mode (does not require X11):
+
+```bash
+echo "exit" | ./netgen-x.x.x-x86_64.AppImage -batch
+```
+
+If you need the GUI on a headless system, ensure X11 forwarding is enabled.
+
+### AppImage runs but reports missing libraries
+
+This is rare and may indicate a packaging issue. Check the
+[Actions tab](https://github.com/opensiliconhub/open-eda-appimage/actions)
+for the build log of your release, or open an
+[issue](https://github.com/opensiliconhub/open-eda-appimage/issues).
 
 ---
 
